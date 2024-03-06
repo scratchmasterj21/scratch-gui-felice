@@ -164,7 +164,6 @@ var handleTelemetryModalOptOut = function handleTelemetryModalOptOut() {
   // TODO a hack for testing the backpack, allow backpack host to be set by url param
   var backpackHostMatches = window.location.href.match(/[?&]backpack_host=([^&]*)&?/);
   var backpackHost = backpackHostMatches ? backpackHostMatches[1] : null;
-  localstorage.setitem;
   var scratchDesktopMatches = window.location.href.match(/[?&]isScratchDesktop=([^&]+)/);
   var simulateScratchDesktop;
   if (scratchDesktopMatches) {
@@ -190,7 +189,6 @@ var handleTelemetryModalOptOut = function handleTelemetryModalOptOut() {
     onTelemetryModalOptOut: handleTelemetryModalOptOut
   }) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(WrappedGui, {
     canEditTitle: true,
-    backpackVisible: true,
     backpackHost: backpackHost,
     canSave: false,
     onClickLogo: onClickLogo
