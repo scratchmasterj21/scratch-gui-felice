@@ -168,8 +168,9 @@ var handleTelemetryModalOptOut = function handleTelemetryModalOptOut() {
   var WrappedGui = Object(redux__WEBPACK_IMPORTED_MODULE_2__["compose"])(_lib_app_state_hoc_jsx__WEBPACK_IMPORTED_MODULE_4__["default"], _lib_hash_parser_hoc_jsx__WEBPACK_IMPORTED_MODULE_6__["default"])(_containers_gui_jsx__WEBPACK_IMPORTED_MODULE_5__["default"]);
 
   // TODO a hack for testing the backpack, allow backpack host to be set by url param
-  var backpackHostMatches = window.location.href.match(/[?&]backpack_host=([^&]*)&?/);
-  var backpackHost = backpackHostMatches ? backpackHostMatches[1] : null;
+  //const backpackHostMatches = window.location.href.match(/[?&]backpack_host=([^&]*)&?/);
+  //const backpackHost = backpackHostMatches ? backpackHostMatches[1] : null;
+  var backpackHost = 'scr_bp';
   var scratchDesktopMatches = window.location.href.match(/[?&]isScratchDesktop=([^&]+)/);
   var simulateScratchDesktop;
   if (scratchDesktopMatches) {
@@ -182,6 +183,37 @@ var handleTelemetryModalOptOut = function handleTelemetryModalOptOut() {
       simulateScratchDesktop = scratchDesktopMatches[1];
     }
   }
+  // ?project=https://example.com/project.sb3
+  var onVmInit = function onVmInit(vm) {
+    // Load a project from a URL. Example: ?project_url=/example.sb3
+    var projectLoaded = false;
+
+    // We need to wait the VM start and the default project to be loaded before
+    // trying to load the url project, otherwiste we can get a mix of both.
+    vm.runtime.on('PROJECT_LOADED', function () {
+      if (!projectLoaded) {
+        var projectFileMatches = window.location.href.match(/[?&]project=([^&]*)&?/);
+        var projectFile = projectFileMatches ? decodeURIComponent(projectFileMatches[1]) : null;
+        if (projectFile) {
+          fetch(projectFile).then(function (response) {
+            if (response.ok) {
+              return response.arrayBuffer();
+            } else {
+              console.error('Failed to fetch project: ' + response.statusText);
+            }
+          }).then(function (arrayBuffer) {
+            if (arrayBuffer) {
+              projectLoaded = true;
+              vm.loadProject(arrayBuffer).catch(function (error) {
+                projectLoaded = false;
+                console.error('Failed to load project. ' + error);
+              });
+            }
+          });
+        }
+      }
+    });
+  };
   if (false) {}
   react_dom__WEBPACK_IMPORTED_MODULE_1___default.a.render(
   // important: this is checking whether `simulateScratchDesktop` is truthy, not just defined!
@@ -195,9 +227,11 @@ var handleTelemetryModalOptOut = function handleTelemetryModalOptOut() {
     onTelemetryModalOptOut: handleTelemetryModalOptOut
   }) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(WrappedGui, {
     canEditTitle: true,
+    backpackVisible: true,
     backpackHost: backpackHost,
     canSave: false,
-    onClickLogo: onClickLogo
+    onClickLogo: onClickLogo,
+    onVmInit: onVmInit
   }), appTarget);
 });
 

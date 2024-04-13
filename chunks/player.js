@@ -94,6 +94,38 @@ function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == 
 
 if (false) {}
 
+
+// ?project=https://example.com/project.sb3    
+var onVmInit = function onVmInit(vm) {
+  // Load a project from a URL. Example: ?project_url=/example.sb3
+  var projectLoaded = false;
+
+  // We need to wait the VM start and the default project to be loaded before
+  // trying to load the url project, otherwiste we can get a mix of both.
+  vm.runtime.on('PROJECT_LOADED', function () {
+    if (!projectLoaded) {
+      var projectFileMatches = window.location.href.match(/[?&]project=([^&]*)&?/);
+      var projectFile = projectFileMatches ? decodeURIComponent(projectFileMatches[1]) : null;
+      if (projectFile) {
+        fetch(projectFile).then(function (response) {
+          if (response.ok) {
+            return response.arrayBuffer();
+          } else {
+            console.error('Failed to fetch project: ' + response.statusText);
+          }
+        }).then(function (arrayBuffer) {
+          if (arrayBuffer) {
+            projectLoaded = true;
+            vm.loadProject(arrayBuffer).catch(function (error) {
+              projectLoaded = false;
+              console.error('Failed to load project. ' + error);
+            });
+          }
+        });
+      }
+    }
+  });
+};
 var Player = function Player(_ref) {
   var isPlayerOnly = _ref.isPlayerOnly,
     onSeeInside = _ref.onSeeInside,
@@ -106,7 +138,8 @@ var Player = function Player(_ref) {
     canEditTitle: true,
     enableCommunity: true,
     isPlayerOnly: isPlayerOnly,
-    projectId: projectId
+    projectId: projectId,
+    onVmInit: onVmInit
   }));
 };
 Player.propTypes = {
@@ -137,6 +170,13 @@ document.body.appendChild(appTarget);
 react_dom__WEBPACK_IMPORTED_MODULE_3___default.a.render( /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_2___default.a.createElement(WrappedPlayer, {
   isPlayerOnly: true
 }), appTarget);
+function resizerender() {
+  react_dom__WEBPACK_IMPORTED_MODULE_3___default.a.render( /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_2___default.a.createElement(WrappedPlayer, {
+    isPlayerOnly: true,
+    isFullScreen: true
+  }), appTarget);
+}
+setTimeout(resizerender, 1500);
 
 /***/ })
 
