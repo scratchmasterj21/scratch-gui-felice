@@ -10,6 +10,7 @@
     bottom: 0;
     z-index: $z-index-modal;
     background-color: $ui-modal-overlay;
+    overflow: auto;
 }
 
 .modal-content * {
@@ -67,7 +68,7 @@ $sides: 20rem;
 
     box-sizing: border-box;
     width: 100%;
-    background-color: $looks-secondary;
+    background-color: $motion-primary;
 
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 1rem;

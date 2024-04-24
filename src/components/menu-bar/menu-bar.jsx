@@ -6,6 +6,7 @@ import PropTypes from 'prop-types';
 import bindAll from 'lodash.bindall';
 import bowser from 'bowser';
 import React from 'react';
+import GoogleDrivePickerButton from './google-drive-btn.jsx'; // Adjust the import path as necessary
 
 import VM from 'scratch-vm';
 
@@ -28,6 +29,9 @@ import DeletionRestorer from '../../containers/deletion-restorer.jsx';
 import TurboMode from '../../containers/turbo-mode.jsx';
 import MenuBarHOC from '../../containers/menu-bar-hoc.jsx';
 import SettingsMenu from './settings-menu.jsx';
+import LanguageSelector from '../../containers/language-selector.jsx';
+import languageIcon from '../language-selector/language-icon.svg';
+
 
 import {openTipsLibrary} from '../../reducers/modals';
 import {setPlayer} from '../../reducers/mode';
@@ -94,6 +98,11 @@ import oldtimeyLogo from './oldtimey-logo.svg';
 import sharedMessages from '../../lib/shared-messages';
 
 const ariaMessages = defineMessages({
+    language: {
+        id: 'gui.menuBar.LanguageSelector',
+        defaultMessage: 'language selector',
+        description: 'accessibility text for the language selection menu'
+    },
     tutorials: {
         id: 'gui.menuBar.tutorialsLibrary',
         defaultMessage: 'Tutorials',
@@ -436,14 +445,29 @@ class MenuBar extends React.Component {
                                 onClick={this.props.onClickLogo}
                             />
                         </div>
-                        {(this.props.canChangeTheme || this.props.canChangeLanguage) && (<SettingsMenu
+                        {/*{(this.props.canChangeTheme || this.props.canChangeLanguage) && (<SettingsMenu
                             canChangeLanguage={this.props.canChangeLanguage}
                             canChangeTheme={this.props.canChangeTheme}
                             isRtl={this.props.isRtl}
                             onRequestClose={this.props.onRequestCloseSettings}
                             onRequestOpen={this.props.onClickSettings}
                             settingsMenuOpen={this.props.settingsMenuOpen}
-                        />)}
+                        />)}*/}
+                        {(this.props.canChangeLanguage) && (<div
+                            className={classNames(styles.menuBarItem, styles.hoverable, styles.languageMenu)}
+                        >
+                            <div>
+                                <img
+                                    className={styles.languageIcon}
+                                    src={languageIcon}
+                                />
+                                <img
+                                    className={styles.languageCaret}
+                                    src={dropdownCaret}
+                                />
+                            </div>
+                            <LanguageSelector label={this.props.intl.formatMessage(ariaMessages.language)} />
+                        </div>)}
                         {(this.props.canManageFiles) && (
                             <div
                                 className={classNames(styles.menuBarItem, styles.hoverable, {
@@ -451,15 +475,15 @@ class MenuBar extends React.Component {
                                 })}
                                 onMouseUp={this.props.onClickFile}
                             >
-                                <img src={fileIcon} />
-                                <span className={styles.collapsibleLabel}>
+                                {/*<img src={fileIcon} />*/}
+                                {/*<span className={styles.collapsibleLabel}>*/}
                                     <FormattedMessage
                                         defaultMessage="File"
                                         description="Text for file dropdown menu"
                                         id="gui.menuBar.file"
                                     />
-                                </span>
-                                <img src={dropdownCaret} />
+                                {/*</span>*/}
+                                {/*<img src={dropdownCaret} />*/}
                                 <MenuBarMenu
                                     className={classNames(styles.menuBarMenu)}
                                     open={this.props.fileMenuOpen}
@@ -512,6 +536,14 @@ class MenuBar extends React.Component {
                                             </MenuItem>
                                         )}</SB3Downloader>
                                     </MenuSection>
+                                    <MenuSection>
+                                    <MenuItem>
+                                    <GoogleDrivePickerButton
+                                        clientId="313123590702-3klcs6d9ao9t368n91uuvi5ct1g1igld.apps.googleusercontent.com"
+                                        developerKey="AIzaSyCvjU_vpqkCfb1EB56w4lo3vXNnvGHG4fs"
+                                    />  
+                                    </MenuItem>
+                                    </MenuSection>
                                 </MenuBarMenu>
                             </div>
                         )}
@@ -521,16 +553,16 @@ class MenuBar extends React.Component {
                             })}
                             onMouseUp={this.props.onClickEdit}
                         >
-                            <img src={editIcon} />
-                            <span className={styles.collapsibleLabel}>
+                            {/*<img src={editIcon} />*/}
+                            {/*<span className={styles.collapsibleLabel}>*/}
                                 <FormattedMessage
                                     defaultMessage="Edit"
                                     description="Text for edit dropdown menu"
                                     id="gui.menuBar.edit"
                                 />
-                            </span>
-                            <img src={dropdownCaret} />
-                            <MenuBarMenu
+                            {/*</span>*/}
+                                {/*<img src={dropdownCaret} />*/}
+                                <MenuBarMenu
                                 className={classNames(styles.menuBarMenu)}
                                 open={this.props.editMenuOpen}
                                 place={this.props.isRtl ? 'left' : 'right'}
@@ -614,6 +646,24 @@ class MenuBar extends React.Component {
                             </div>
                         )}
                     </div>
+                    <Divider className={classNames(styles.divider)} />
+                    <div className={styles.fileGroup}>
+                        <div
+                            aria-label={this.props.intl.formatMessage(ariaMessages.tutorials)}
+                            className={classNames(styles.menuBarItem, styles.hoverable)}
+                            onClick={this.props.onOpenTipLibrary}
+                        >
+                            <img
+                                className={styles.helpIcon}
+                                src={helpIcon}
+                            />
+                            <span className={styles.tutorialsLabel}>
+                                <FormattedMessage {...ariaMessages.tutorials} />
+                            </span>
+                        </div>
+                    </div>
+                <Divider className={classNames(styles.divider)} />
+
                     {this.props.canEditTitle ? (
                         <div className={classNames(styles.menuBarItem, styles.growable)}>
                             <MenuBarItemTooltip
@@ -686,23 +736,8 @@ class MenuBar extends React.Component {
                             </MenuBarItemTooltip>
                         ) : [])}
                     </div>
-                    <Divider className={classNames(styles.divider)} />
-                    <div className={styles.fileGroup}>
-                        <div
-                            aria-label={this.props.intl.formatMessage(ariaMessages.tutorials)}
-                            className={classNames(styles.menuBarItem, styles.hoverable)}
-                            onClick={this.props.onOpenTipLibrary}
-                        >
-                            <img
-                                className={styles.helpIcon}
-                                src={helpIcon}
-                            />
-                            <span className={styles.tutorialsLabel}>
-                                <FormattedMessage {...ariaMessages.tutorials} />
-                            </span>
-                        </div>
-                    </div>
                 </div>
+
 
                 {/* show the proper UI in the account menu, given whether the user is
                 logged in, and whether a session is available to log in with */}

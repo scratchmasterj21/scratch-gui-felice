@@ -231,3 +231,18 @@
         margin-right: 0;
     }
 }
+
+.language-icon {
+    height:  1.5rem;
+    vertical-align: middle;
+}
+
+.language-caret {
+    margin: 0 .125rem;
+}
+
+.language-menu {
+    box-sizing: border-box;
+    display: inline-flex;
+}
+

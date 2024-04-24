@@ -1,11 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {compose} from 'redux';
+import useDrivePicker from 'react-google-drive-picker';
 
 import AppStateHOC from '../lib/app-state-hoc.jsx';
 import GUI from '../containers/gui.jsx';
 import HashParserHOC from '../lib/hash-parser-hoc.jsx';
 import log from '../lib/log.js';
+
+function writeAccess() { DriveApp.addFile(); }
 
 const onClickLogo = () => {
     window.location = 'https://scratchmasterj21.github.io/scratch-gui-felice/';
@@ -40,8 +43,9 @@ export default appTarget => {
     )(GUI);
 
     // TODO a hack for testing the backpack, allow backpack host to be set by url param
-    const backpackHostMatches = window.location.href.match(/[?&]backpack_host=([^&]*)&?/);
-    const backpackHost = backpackHostMatches ? backpackHostMatches[1] : null;
+    //const backpackHostMatches = window.location.href.match(/[?&]backpack_host=([^&]*)&?/);
+    //const backpackHost = backpackHostMatches ? backpackHostMatches[1] : null;
+    const backpackHost = 'scr_bp';
 
     const scratchDesktopMatches = window.location.href.match(/[?&]isScratchDesktop=([^&]+)/);
     let simulateScratchDesktop;
@@ -55,6 +59,43 @@ export default appTarget => {
             simulateScratchDesktop = scratchDesktopMatches[1];
         }
     }
+   // ?project=https://example.com/project.sb3
+   const onVmInit = vm => {
+
+    // Load a project from a URL. Example: ?project_url=/example.sb3
+    let projectLoaded = false;
+
+    // We need to wait the VM start and the default project to be loaded before
+    // trying to load the url project, otherwiste we can get a mix of both.
+    vm.runtime.on('PROJECT_LOADED', () => {
+        if (!projectLoaded) {
+            const projectFileMatches = window.location.href.match(/[?&]project=([^&]*)&?/);
+            const projectFile = projectFileMatches ? decodeURIComponent(projectFileMatches[1]) : null;
+            if (projectFile) {
+                fetch(projectFile)
+                    .then(response => {
+                        if (response.ok) {
+                            return response.arrayBuffer();
+                        } else {
+                            console.error('Failed to fetch project: ' + response.statusText);
+                        }
+                    })
+                    .then(arrayBuffer => {
+                        if (arrayBuffer) {
+                            projectLoaded = true;
+                            vm.loadProject(arrayBuffer)
+                                .catch(error => {
+                                    projectLoaded = false;
+                                    console.error('Failed to load project. ' + error);
+                                }
+                            );
+                        }
+                    }
+                );
+            }
+        }
+    });
+};
 
     if (process.env.NODE_ENV === 'production' && typeof window === 'object') {
         // Warn before navigating away
@@ -75,9 +116,11 @@ export default appTarget => {
             /> :
             <WrappedGui
                 canEditTitle
+                backpackVisible
                 backpackHost={backpackHost}
                 canSave={false}
                 onClickLogo={onClickLogo}
+                onVmInit={onVmInit}
             />,
         appTarget);
 };
