@@ -541,6 +541,8 @@ class MenuBar extends React.Component {
                                     <GoogleDrivePickerButton
                                         clientId="313123590702-3klcs6d9ao9t368n91uuvi5ct1g1igld.apps.googleusercontent.com"
                                         developerKey="AIzaSyCvjU_vpqkCfb1EB56w4lo3vXNnvGHG4fs"
+                                        onProjectLoadFromExternalSource={this.props.onProjectLoadFromExternalSource} // You provide this from SBFileUploaderHOC
+
                                     />  
                                     </MenuItem>
                                     </MenuSection>
@@ -948,6 +950,7 @@ MenuBar.propTypes = {
     onSetTimeTravelMode: PropTypes.func,
     onShare: PropTypes.func,
     onStartSelectingFileUpload: PropTypes.func,
+    onProjectLoadFromExternalSource: PropTypes.func,
     onToggleLoginOpen: PropTypes.func,
     projectTitle: PropTypes.string,
     renderLogin: PropTypes.func,

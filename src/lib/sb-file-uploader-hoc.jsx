@@ -48,11 +48,38 @@ const SBFileUploaderHOC = function (WrappedComponent) {
                 'getProjectTitleFromFilename',
                 'handleFinishedLoadingUpload',
                 'handleStartSelectingFileUpload',
+                'handleProjectLoadFromExternalSource',
                 'handleChange',
                 'onload',
                 'removeFileObjects'
             ]);
         }
+
+
+        // Add a new method for handling external file loads, e.g., from Google Drive
+        handleProjectLoadFromExternalSource = (fileData, fileName) => {
+            let loadingSuccess = false;
+        // You might need to convert the fileData to the appropriate format here
+        // if it's not already an ArrayBuffer, depending on how your VM expects to receive the file data.
+            this.props.onLoadingStarted();
+            this.props.vm.loadProject(fileData)
+             .then(() => {
+                const uploadedProjectTitle = this.getProjectTitleFromFilename(fileName);
+                this.props.onSetProjectTitle(uploadedProjectTitle);
+                loadingSuccess = true;
+
+             })     
+        .catch(error => {
+            log.warn(error);
+            alert(this.props.intl.formatMessage(messages.loadError));
+        })
+        .then(() => {
+            this.props.onLoadingFinished("LOADING_VM_FILE_UPLOAD", loadingSuccess);
+            this.removeFileObjects();
+        });
+        };
+
+
         componentDidUpdate (prevProps) {
             if (this.props.isLoadingUpload && !prevProps.isLoadingUpload) {
                 this.handleFinishedLoadingUpload(); // cue step 5 below
@@ -97,7 +124,6 @@ const SBFileUploaderHOC = function (WrappedComponent) {
             const thisFileInput = e.target;
             if (thisFileInput.files) { // Don't attempt to load if no file was selected
                 this.fileToUpload = thisFileInput.files[0];
-
                 // If user owns the project, or user has changed the project,
                 // we must confirm with the user that they really intend to
                 // replace it. (If they don't own the project and haven't
@@ -149,6 +175,7 @@ const SBFileUploaderHOC = function (WrappedComponent) {
                 this.props.onLoadingStarted();
                 const filename = this.fileToUpload && this.fileToUpload.name;
                 let loadingSuccess = false;
+
                 this.props.vm.loadProject(this.fileReader.result)
                     .then(() => {
                         if (filename) {
@@ -201,6 +228,7 @@ const SBFileUploaderHOC = function (WrappedComponent) {
                 <React.Fragment>
                     <WrappedComponent
                         onStartSelectingFileUpload={this.handleStartSelectingFileUpload}
+                        onProjectLoadFromExternalSource={this.handleProjectLoadFromExternalSource}
                         {...componentProps}
                     />
                 </React.Fragment>

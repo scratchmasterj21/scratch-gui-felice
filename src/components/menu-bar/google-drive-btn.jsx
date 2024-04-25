@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import useDrivePicker from 'react-google-drive-picker';
+import { addConsoleHandler } from 'selenium-webdriver/lib/logging';
 
-const GoogleDrivePickerButton = ({ clientId, developerKey }) => {
+const GoogleDrivePickerButton = ({ clientId, developerKey, onProjectLoadFromExternalSource}) => {
   const [openPicker] = useDrivePicker();
   const [tokenInfo, setTokenInfo] = useState(null);
 
@@ -48,13 +49,13 @@ const GoogleDrivePickerButton = ({ clientId, developerKey }) => {
                   fetch(`${driveFileUrl}/${item.id}?alt=media`, fetchOptions)
                     .then(response => {
                       if (response.ok) {
-                        return response.blob();
+                        return response.arrayBuffer();
                       } else {
                         throw new Error(`Failed to fetch file: ${response.statusText}`);
                       }
                     })
                     .then(fileData => {
-                      saveFile(fileData, item.name);
+                      onProjectLoadFromExternalSource(fileData, item.name);
                     })
                     .catch(error => {
                       console.error('Error fetching or saving files:', error);
@@ -87,7 +88,7 @@ const GoogleDrivePickerButton = ({ clientId, developerKey }) => {
     document.body.removeChild(a);
   };
 
-  return <div onClick={handleOpenPicker}>Open Google Drive</div>;
+  return <div onClick={handleOpenPicker}>Load from Google Drive</div>;
 };
 
 export default GoogleDrivePickerButton;

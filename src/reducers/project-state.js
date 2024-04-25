@@ -414,6 +414,7 @@ const onFetchedProjectData = (projectData, loadingState) => {
 
 const onLoadedProject = (loadingState, canSave, success) => {
     switch (loadingState) {
+    
     case LoadingState.LOADING_VM_WITH_ID:
         if (success) {
             return {type: DONE_LOADING_VM_WITH_ID};
