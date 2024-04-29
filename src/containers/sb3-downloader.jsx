@@ -4,6 +4,7 @@ import React from 'react';
 import {connect} from 'react-redux';
 import {projectTitleInitialState} from '../reducers/project-title';
 import downloadBlob from '../lib/download-blob';
+
 /**
  * Project saver component passes a downloadProject function to its child.
  * It expects this child to be a function with the signature
@@ -25,6 +26,7 @@ class SB3Downloader extends React.Component {
             'downloadProject'
         ]);
     }
+    
     downloadProject () {
         this.props.saveProjectSb3().then(content => {
             if (this.props.onSaveFinished) {

@@ -59,6 +59,8 @@ const SBFileUploaderHOC = function (WrappedComponent) {
         // Add a new method for handling external file loads, e.g., from Google Drive
         handleProjectLoadFromExternalSource = (fileData, fileName) => {
             let loadingSuccess = false;
+            console.log(fileData);
+            console.log(fileName);
         // You might need to convert the fileData to the appropriate format here
         // if it's not already an ArrayBuffer, depending on how your VM expects to receive the file data.
             this.props.onLoadingStarted();

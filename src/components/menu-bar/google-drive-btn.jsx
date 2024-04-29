@@ -1,94 +1,82 @@
-import React, { useState } from 'react';
-import useDrivePicker from 'react-google-drive-picker';
-import { addConsoleHandler } from 'selenium-webdriver/lib/logging';
+import React, { useState, useEffect } from 'react';
 
-const GoogleDrivePickerButton = ({ clientId, developerKey, onProjectLoadFromExternalSource}) => {
-  const [openPicker] = useDrivePicker();
-  const [tokenInfo, setTokenInfo] = useState(null);
+const GoogleDrivePickerButton = ({ developerKey, onProjectLoadFromExternalSource }) => {
+    const [accessToken, setAccessToken] = useState(null);
 
-  const handleOpenPicker = () => {
-    gapi.load('client:auth2', () => {
-      gapi.client
-        .init({
-          apiKey: clientId,
-        })
-        .then(() => {
-          let token = gapi.auth.getToken();
-          setTokenInfo(token);
-          const pickerConfig = {
-            clientId: clientId,
-            developerKey: developerKey,
-            viewId: 'DOCS',
-            token: token ? token.access_token : null,
-            showUploadView: true,
-            showUploadFolders: true,
-            supportDrives: true,
-            multiselect: true,
-            callbackFunction: (data) => {
-              const elements = Array.from(
-                document.getElementsByClassName(
-                  'picker-dialog'
-                )
-              );
-              for (let i = 0; i < elements.length; i++) {
-                elements[i].style.zIndex = '2000';
-              }
-              if (data.action === 'picked') {
-                if (!token) {
-                  token = gapi.auth.getToken();
-                  setTokenInfo(token);
+    useEffect(() => {
+        if (accessToken) {
+            createPicker(accessToken);
+        }
+    }, [accessToken]); // This will trigger when accessToken changes.
+
+    const authenticateAndLoadPicker = () => {
+        window.google.accounts.oauth2.initTokenClient({
+            client_id: '313123590702-3klcs6d9ao9t368n91uuvi5ct1g1igld.apps.googleusercontent.com',
+            scope: 'https://www.googleapis.com/auth/drive.file',
+            callback: (response) => {
+                if (response.error) {
+                    console.error('Error fetching access token:', response.error);
+                    return;
                 }
-                const fetchOptions = {
-                  headers: {
-                    Authorization: `Bearer ${token.access_token}`,
-                  },
-                };
-                const driveFileUrl = 'https://www.googleapis.com/drive/v3/files';
-                
-                const fetchPromises = data.docs.map(item =>
-                  fetch(`${driveFileUrl}/${item.id}?alt=media`, fetchOptions)
-                    .then(response => {
-                      if (response.ok) {
-                        return response.arrayBuffer();
-                      } else {
-                        throw new Error(`Failed to fetch file: ${response.statusText}`);
-                      }
-                    })
-                    .then(fileData => {
-                      onProjectLoadFromExternalSource(fileData, item.name);
-                    })
-                    .catch(error => {
-                      console.error('Error fetching or saving files:', error);
-                    })
-                );
-
-                Promise.all(fetchPromises)
-                  .then(() => {
-                    console.log('All files fetched and saved successfully.');
-                  })
-                  .catch(error => {
-                    console.error('Error fetching or saving files:', error);
-                  });
-              }
+                setAccessToken(response.access_token);
             },
-          };
-          openPicker(pickerConfig);
+        }).requestAccessToken({ prompt: 'consent' });
+    };
+
+    const loadPickerApi = () => {
+        window.gapi.load('picker', () => {
+            console.log("Picker API loaded.");
+            // The picker API is ready now, authenticate the user
+            authenticateAndLoadPicker();
         });
-    });
-  };
+    };
 
-  const saveFile = (fileData, fileName) => {
-    // Example: Save file to local storage
-    const blobURL = URL.createObjectURL(fileData);
-    const a = document.createElement('a');
-    a.href = blobURL;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
+    const handleOpenPicker = () => {
+        if (accessToken) {
+            // If already have an access token, create the picker right away
+            createPicker(accessToken);
+        } else {
+            // Load the Picker API and authenticate the user
+            if (!window.gapi) {
+                const script = document.createElement('script');
+                script.src = "https://apis.google.com/js/api.js";
+                script.onload = loadPickerApi;
+                document.body.appendChild(script);
+            } else {
+                loadPickerApi();
+            }
+        }
+    };
 
-  return <div onClick={handleOpenPicker}>Load from Google Drive</div>;
+    const createPicker = (token) => {
+        const picker = new window.google.picker.PickerBuilder()
+            .addView(window.google.picker.ViewId.DOCS)
+            .setOAuthToken(token)
+            .setDeveloperKey(developerKey)
+            .setCallback(pickerCallback)
+            .build();
+        picker.setVisible(true);
+    };
+
+    const pickerCallback = (data) => {
+        if (data[window.google.picker.Response.ACTION] === window.google.picker.Action.PICKED) {
+            const fileId = data[window.google.picker.Response.DOCUMENTS][0].id;
+            const fileName = data[window.google.picker.Response.DOCUMENTS][0].name;
+            fetchFile(fileId, fileName);
+        }
+    };
+
+    const fetchFile = async (fileId, fileName) => {
+        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+            headers: new Headers({ 'Authorization': `Bearer ${accessToken}` })
+        });
+        const data = await response.arrayBuffer();
+        onProjectLoadFromExternalSource(data, fileName);
+    };
+
+    return (
+        <div onClick={handleOpenPicker}>Load from Google Drive</div>
+    );
 };
 
 export default GoogleDrivePickerButton;

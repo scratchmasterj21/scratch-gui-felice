@@ -7,7 +7,7 @@ import bindAll from 'lodash.bindall';
 import bowser from 'bowser';
 import React from 'react';
 import GoogleDrivePickerButton from './google-drive-btn.jsx'; // Adjust the import path as necessary
-
+import {loadGoogleApis, uploadFileToGoogleDrive} from './drive-utils.jsx';
 import VM from 'scratch-vm';
 
 import Box from '../box/box.jsx';
@@ -31,6 +31,7 @@ import MenuBarHOC from '../../containers/menu-bar-hoc.jsx';
 import SettingsMenu from './settings-menu.jsx';
 import LanguageSelector from '../../containers/language-selector.jsx';
 import languageIcon from '../language-selector/language-icon.svg';
+import {projectTitleInitialState} from '../../reducers/project-title';
 
 
 import {openTipsLibrary} from '../../reducers/modals';
@@ -191,6 +192,7 @@ class MenuBar extends React.Component {
             'handleKeyPress',
             'handleRestoreOption',
             'getSaveToComputerHandler',
+            'handleSaveToGoogleDrive',
             'restoreOptionMessage'
         ]);
     }
@@ -301,6 +303,36 @@ class MenuBar extends React.Component {
             }
         };
     }
+
+    handleSaveToGoogleDrive = () => {
+        this.props.onRequestCloseFile();
+        this.props.saveProjectSb3().then(blob => {
+            const fileName = this.props.projectFilename;
+            loadGoogleApis((accessToken) => {
+                if (accessToken) {
+                    uploadFileToGoogleDrive(blob, fileName, accessToken,
+                        (result) => {
+                            console.log('Upload successful:', result);
+                            if (this.props.onProjectTelemetryEvent) {
+                                const metadata = this.collectMetadata();
+                                this.props.onProjectTelemetryEvent('projectDidSaveToGoogleDrive', metadata);
+                            }
+                        },
+                        (error) => {
+                            console.error('Upload failed:', error);
+                        }
+                    );
+                } else {
+                    console.error('No access token available.');
+                }
+            });
+        }).catch(error => {
+            console.error('Error fetching the project blob:', error);
+        });
+    };
+    
+    
+    
     restoreOptionMessage (deletedItem) {
         switch (deletedItem) {
         case 'Sprite':
@@ -537,13 +569,15 @@ class MenuBar extends React.Component {
                                         )}</SB3Downloader>
                                     </MenuSection>
                                     <MenuSection>
-                                    <MenuItem>
-                                    <GoogleDrivePickerButton
-                                        clientId="313123590702-3klcs6d9ao9t368n91uuvi5ct1g1igld.apps.googleusercontent.com"
-                                        developerKey="AIzaSyCvjU_vpqkCfb1EB56w4lo3vXNnvGHG4fs"
-                                        onProjectLoadFromExternalSource={this.props.onProjectLoadFromExternalSource} // You provide this from SBFileUploaderHOC
 
-                                    />  
+                                    <MenuItem>
+                                        <GoogleDrivePickerButton
+                                          developerKey="AIzaSyCvjU_vpqkCfb1EB56w4lo3vXNnvGHG4fs"
+                                          onProjectLoadFromExternalSource={this.props.onProjectLoadFromExternalSource} // You provide this from SBFileUploaderHOC
+                                    />
+                                    </MenuItem>
+                                    <MenuItem onClick={this.handleSaveToGoogleDrive}
+                                    > Save to Google Drive
                                     </MenuItem>
                                     </MenuSection>
                                 </MenuBarMenu>
@@ -970,6 +1004,7 @@ MenuBar.defaultProps = {
 
 const mapStateToProps = (state, ownProps) => {
     const loadingState = state.scratchGui.projectState.loadingState;
+    
     const user = state.session && state.session.session && state.session.session.user;
     return {
         aboutMenuOpen: aboutMenuOpen(state),
@@ -994,8 +1029,18 @@ const mapStateToProps = (state, ownProps) => {
         mode1920: isTimeTravel1920(state),
         mode1990: isTimeTravel1990(state),
         mode2020: isTimeTravel2020(state),
-        modeNow: isTimeTravelNow(state)
+        modeNow: isTimeTravelNow(state),
+        saveProjectSb3: state.scratchGui.vm.saveProjectSb3.bind(state.scratchGui.vm),
+        projectFilename: getProjectFilename(state.scratchGui.projectTitle, projectTitleInitialState)
     };
+};
+
+const getProjectFilename = (curTitle, defaultTitle) => {
+    let filenameTitle = curTitle;
+    if (!filenameTitle || filenameTitle.length === 0) {
+        filenameTitle = defaultTitle;
+    }
+    return `${filenameTitle.substring(0, 100)}.sb3`;
 };
 
 const mapDispatchToProps = dispatch => ({
