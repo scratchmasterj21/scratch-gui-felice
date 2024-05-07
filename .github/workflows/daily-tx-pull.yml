@@ -28,7 +28,7 @@ jobs:
           GitHub head ref: ${{ github.head_ref }}
           EOF
       - name: Setup
-        run: npm --production=false ci
+        run: npm install --legacy-peer-deps --production=false
       - name: Extract translations
         run: npm run i18n:src
       - name: Push translations
