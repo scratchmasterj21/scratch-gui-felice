@@ -1,54 +1,80 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 const GoogleDrivePickerButton = ({ developerKey, onProjectLoadFromExternalSource }) => {
-    const [accessToken, setAccessToken] = useState(null);
+    const [accessToken, setAccessToken] = useState(localStorage.getItem('googleAccessToken'));
 
-    useEffect(() => {
-        if (accessToken) {
+    const loadPickerApi = () => {
+        window.gapi.load('picker', () => {
+            console.log("Picker API loaded.");
             createPicker(accessToken);
-        }
-    }, [accessToken]); // This will trigger when accessToken changes.
+        });
+    };
 
     const authenticateAndLoadPicker = () => {
         window.google.accounts.oauth2.initTokenClient({
             client_id: '313123590702-3klcs6d9ao9t368n91uuvi5ct1g1igld.apps.googleusercontent.com',
-            scope: 'https://www.googleapis.com/auth/drive.file',
+            scope: 'https://www.googleapis.com/auth/drive',
             callback: (response) => {
                 if (response.error) {
                     console.error('Error fetching access token:', response.error);
                     return;
                 }
-                setAccessToken(response.access_token);
+                if (response.access_token) {
+                    setAccessToken(response.access_token);
+                    localStorage.setItem('googleAccessToken', response.access_token);
+                    loadPickerApi(); // Load Picker after authentication
+                } else {
+                    console.log("No access token obtained, forcing login prompt.");
+                    requestUserLogin(); // Additional method to handle login
+                }
             },
+        }).requestAccessToken({ prompt: 'select_account' });
+    };
+    
+    const requestUserLogin = () => {
+        window.google.accounts.oauth2.initTokenClient({
+            client_id: '313123590702-3klcs6d9ao9t368n91uuvi5ct1g1igld.apps.googleusercontent.com',
+            scope: 'https://www.googleapis.com/auth/drive.file',
+            callback: (response) => {
+                if (response.access_token) {
+                    setAccessToken(response.access_token);
+                    localStorage.setItem('googleAccessToken', response.access_token);
+                    loadPickerApi(); // Proceed after login
+                } else {
+                    console.error('Failed to authenticate user.');
+                }
+            }
         }).requestAccessToken({ prompt: 'consent' });
     };
-
-    const loadPickerApi = () => {
-        window.gapi.load('picker', () => {
-            console.log("Picker API loaded.");
-            // The picker API is ready now, authenticate the user
-            authenticateAndLoadPicker();
-        });
-    };
-
+    
     const handleOpenPicker = () => {
         if (accessToken) {
-            // If already have an access token, create the picker right away
-            createPicker(accessToken);
+            if (!window.google || !window.google.picker) {
+                loadPickerApi(); // Ensures API is loaded
+            } else {
+                createPicker(accessToken);
+            }
         } else {
-            // Load the Picker API and authenticate the user
-            if (!window.gapi) {
+            if (!window.google.accounts) {
                 const script = document.createElement('script');
                 script.src = "https://apis.google.com/js/api.js";
-                script.onload = loadPickerApi;
+                script.onload = () => {
+                    console.log("Google API script loaded, initializing OAuth client.");
+                    authenticateAndLoadPicker();
+                };
                 document.body.appendChild(script);
             } else {
-                loadPickerApi();
+                authenticateAndLoadPicker();
             }
         }
     };
+    
 
     const createPicker = (token) => {
+        if (!window.google || !window.google.picker) {
+            console.error("Picker API is not fully loaded yet.");
+            return;
+        }
         const picker = new window.google.picker.PickerBuilder()
             .addView(window.google.picker.ViewId.DOCS)
             .setOAuthToken(token)
