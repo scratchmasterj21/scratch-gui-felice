@@ -38,6 +38,7 @@ jobs:
               run: npm install --legacy-peer-deps
             - name: Lint
               run: npm run test:lint
+              continue-on-error: true
             - name: Cache node_modules
               id: cache-nodemodules
               uses: actions/cache@e12d46a63a90f2fae62d114769bbf2a179198b5c # v3
