@@ -47,6 +47,13 @@ const Controls = function (props) {
                 title={intl.formatMessage(messages.stopTitle)}
                 onClick={onStopAllClick}
             />
+            {typeof props.cloneCount !== 'undefined' && (
+                <div className={classNames(styles.cloneCounter, {
+                    [styles.cloneCounterMax]: props.cloneCount >= 300
+                })}>
+                    Clones: {props.cloneCount}
+                </div>
+            )}
             {turbo ? (
                 <TurboMode />
             ) : null}

@@ -46,47 +46,89 @@ import gdxforInsetIconURL from './gdxfor/gdxfor-small.svg';
 import gdxforConnectionIconURL from './gdxfor/gdxfor-illustration.svg';
 import gdxforConnectionSmallIconURL from './gdxfor/gdxfor-small.svg';
 
-import tm2scratchIconURL from './tm2scratch/tm2scratch.png';
-import tm2scratchInsetIconURL from './tm2scratch/tm2scratch-small.png';
+import ml2scratchIconURL from './ml2scratch/ml2scratch.png';
+import ml2scratchInsetIconURL from './ml2scratch/ml2scratch-small.png';
+
+import posenet2scratchIconURL from './posenet2scratch/posenet2scratch.png';
+import posenet2scratchInsetIconURL from './posenet2scratch/posenet2scratch-small.png';
+
+import faceSensingIconURL from './faceSensing/faceSensing.png';
+import faceSensingInsetIconURL from './faceSensing/faceSensing-small.svg';
+
+import multitouchIconURL from './multitouch/multitouch.png';
+import multitouchInsetIconURL from './multitouch/multitouch-small.svg';
 
 export default [
     {
-        name: 'TM2Scratch',
-        extensionId: 'tm2scratch',
-        collaborator: 'Tsukurusha, YengawaLab and Google',
-        iconURL: tm2scratchIconURL,
-        insetIconURL: tm2scratchInsetIconURL,
+        name: 'Face Sensing',
+        extensionId: 'faceSensing',
+        iconURL: faceSensingIconURL,
+        insetIconURL: faceSensingInsetIconURL,
         description: (
             <FormattedMessage
-                defaultMessage='画像や音声を学習させよう。'
-                description='画像や音声を学習させよう。'
-                id='gui.extension.tm2scratchblocks.description'
+                defaultMessage='Face Sensing Blocks.'
+                description='Face Sensing Blocks.'
+                id='gui.extension.facesensingblocks.description'
             />
         ),
         featured: true,
         disabled: false,
         internetConnectionRequired: true,
-        bluetoothRequired: false,
-        translationMap: {
-            'ja': {
-                'gui.extension.tm2scratchblocks.description': '画像や音声を学習させよう。'
-            },
-            'ja-Hira': {
-                'gui.extension.tm2scratchblocks.description': 'がぞうやおんせいをがくしゅうさせよう。'
-            },
-            'en': {
-                'gui.extension.tm2scratchblocks.description': 'Recognize your own images and sounds.'
-            },
-            'zh-cn': {
-                'gui.extension.tm2scratchblocks.description': 'Recognize your own images and sounds.'
-            },
-            'ko': {
-                'gui.extension.tm2scratchblocks.description': '나의 이미지와 소리를 인식해볼까요'
-            },
-            'zh-tw': {
-                'gui.extension.tm2scratchblocks.description': 'Recognize your own images and sounds.'
-            }
-        }
+        bluetoothRequired: false
+    },
+    {
+        name: 'Mobile Controls',
+        extensionId: 'multitouch',
+        collaborator: 'Felice Scratch Lab',
+        iconURL: multitouchIconURL,
+        insetIconURL: multitouchInsetIconURL,
+        description: (
+            <FormattedMessage
+                defaultMessage='Multi-touch controls for mobile games.'
+                description='Multi-touch controls.'
+                id='gui.extension.multitouch.description'
+            />
+        ),
+        featured: true,
+        disabled: false,
+        internetConnectionRequired: false,
+        bluetoothRequired: false
+    },
+    {
+        name: 'Posenet2Scratch',
+        extensionId: 'posenet2scratch',
+        collaborator: 'champierre',
+        iconURL: posenet2scratchIconURL,
+        insetIconURL: posenet2scratchInsetIconURL,
+        description: (
+            <FormattedMessage
+                defaultMessage='PoseNet2Scratch Blocks.'
+                description='PoseNet2Scratch Blocks.'
+                id='gui.extension.posenet2scratchblocks.description'
+            />
+        ),
+        featured: true,
+        disabled: false,
+        internetConnectionRequired: true,
+        bluetoothRequired: false
+    },
+    {
+        name: 'ML2Scratch',
+        extensionId: 'ml2scratch',
+        collaborator: 'champierre',
+        iconURL: ml2scratchIconURL,
+        insetIconURL: ml2scratchInsetIconURL,
+        description: (
+            <FormattedMessage
+                defaultMessage='ML2Scratch Blocks.'
+                description='ML2Scratch Blocks.'
+                id='gui.extension.ml2scratchblocks.description'
+            />
+        ),
+        featured: true,
+        disabled: false,
+        internetConnectionRequired: true,
+        bluetoothRequired: false
     },
     {
         name: (

@@ -28,17 +28,24 @@ const base = {
         chunkFilename: 'chunks/[name].js'
     },
     resolve: {
-        symlinks: false
+        symlinks: false,
+        extensions: ['.js', '.jsx', '.mjs', '.json']
     },
     module: {
         rules: [{
-            test: /\.jsx?$/,
+            test: /\.mjs$/,
+            include: /node_modules/,
+            type: 'javascript/auto'
+        }, {
+            test: /\.m?jsx?$/,
             loader: 'babel-loader',
             include: [
                 path.resolve(__dirname, 'src'),
                 /node_modules[\\/]scratch-[^\\/]+[\\/]src/,
                 /node_modules[\\/]pify/,
-                /node_modules[\\/]@vernier[\\/]godirect/
+                /node_modules[\\/]@vernier[\\/]godirect/,
+                /node_modules[\\/]@supabase/,
+                /node_modules[\\/]iceberg-js/
             ],
             options: {
                 // Explicitly disable babelrc so we don't catch various config

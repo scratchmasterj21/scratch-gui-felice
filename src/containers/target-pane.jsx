@@ -3,6 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 import {intlShape, injectIntl} from 'react-intl';
+import Swal from 'sweetalert2';
 
 import {
     openSpriteLibrary,
@@ -78,14 +79,26 @@ class TargetPane extends React.Component {
         this.props.vm.postSpriteInfo({y});
     }
     handleDeleteSprite (id) {
-        const restoreSprite = this.props.vm.deleteSprite(id);
-        const restoreFun = () => restoreSprite().then(this.handleActivateBlocksTab);
+        Swal.fire({
+            heightAuto: false,
+            title: 'Delete sprite?',
+            text: 'Are you sure you want to delete this sprite?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const restoreSprite = this.props.vm.deleteSprite(id);
+                const restoreFun = () => restoreSprite().then(this.handleActivateBlocksTab);
 
-        this.props.dispatchUpdateRestore({
-            restoreFun: restoreFun,
-            deletedItem: 'Sprite'
+                this.props.dispatchUpdateRestore({
+                    restoreFun: restoreFun,
+                    deletedItem: 'Sprite'
+                });
+            }
         });
-
     }
     handleDuplicateSprite (id) {
         this.props.vm.duplicateSprite(id);

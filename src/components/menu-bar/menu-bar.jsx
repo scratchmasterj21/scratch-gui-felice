@@ -10,6 +10,15 @@ import GoogleDrivePickerButton from './google-drive-btn.jsx'; // Adjust the impo
 import {loadGoogleApis, uploadFileToGoogleDrive} from './drive-utils.jsx';
 import VM from 'scratch-vm';
 
+import LoginModal from '../login-modal/login-modal.jsx';
+import MyProjectsModal from '../my-projects-modal/my-projects-modal.jsx';
+import {saveProject} from '../../lib/cloud-project-service';
+import {supabase, emailToUsername} from '../../lib/supabase';
+import {loginSuccess, logout as logoutAction} from '../../reducers/auth';
+import {setProjectTitle} from '../../reducers/project-title';
+import {setProjectUnchanged} from '../../reducers/project-changed';
+import Swal from 'sweetalert2';
+
 import Box from '../box/box.jsx';
 import Button from '../button/button.jsx';
 import CommunityButton from './community-button.jsx';
@@ -193,14 +202,126 @@ class MenuBar extends React.Component {
             'handleRestoreOption',
             'getSaveToComputerHandler',
             'handleSaveToGoogleDrive',
-            'restoreOptionMessage'
+            'restoreOptionMessage',
+            'handleOpenLoginModal',
+            'handleCloseLoginModal',
+            'handleOpenMyProjects',
+            'handleCloseMyProjects',
+            'handleSaveToCloud',
+            'handleLogout',
+            'handleToggleAutoSave'
         ]);
+        this.state = {
+            loginModalOpen: false,
+            myProjectsModalOpen: false,
+            cloudSaveStatus: null, // null, 'saving', 'saved', 'error'
+            autoSaveEnabled: false,
+            autoSaveIntervalId: null,
+            lastSavedTime: null
+        };
     }
     componentDidMount () {
         document.addEventListener('keydown', this.handleKeyPress);
+        // Check for existing Supabase session on mount
+        supabase.auth.getSession().then(({data: {session}}) => {
+            if (session && session.user) {
+                this.props.onSupabaseLoginSuccess({
+                    id: session.user.id,
+                    email: session.user.email,
+                    username: emailToUsername(session.user.email)
+                });
+            }
+        });
     }
     componentWillUnmount () {
         document.removeEventListener('keydown', this.handleKeyPress);
+        if (this.state.autoSaveIntervalId) {
+            clearInterval(this.state.autoSaveIntervalId);
+        }
+    }
+    handleOpenLoginModal () {
+        this.setState({loginModalOpen: true});
+    }
+    handleCloseLoginModal () {
+        this.setState({loginModalOpen: false});
+    }
+    handleOpenMyProjects () {
+        this.props.onRequestCloseFile();
+        this.setState({myProjectsModalOpen: true});
+    }
+    handleCloseMyProjects () {
+        this.setState({myProjectsModalOpen: false});
+    }
+    handleToggleAutoSave () {
+        this.setState(prevState => {
+            const nextEnabled = !prevState.autoSaveEnabled;
+            let nextIntervalId = prevState.autoSaveIntervalId;
+            
+            if (nextEnabled) {
+                // start auto-save every 1 minute (60000 ms)
+                nextIntervalId = setInterval(() => this.handleSaveToCloud(true), 60000);
+            } else {
+                // stop auto-save
+                if (nextIntervalId) clearInterval(nextIntervalId);
+                nextIntervalId = null;
+            }
+            
+            return {
+                autoSaveEnabled: nextEnabled,
+                autoSaveIntervalId: nextIntervalId
+            };
+        });
+    }
+    handleSaveToCloud (isAutoSave = false) {
+        if (!isAutoSave) {
+            this.props.onRequestCloseFile();
+        }
+        const user = this.props.authUser;
+        if (!user) {
+            if (!isAutoSave) this.setState({loginModalOpen: true});
+            return;
+        }
+        const title = this.props.projectTitle || 'Untitled';
+        this.setState({cloudSaveStatus: 'saving'});
+        this.props.vm.saveProjectSb3()
+            .then(blob => saveProject(user.id, title, blob))
+            .then(() => {
+                this.props.onSetProjectUnchanged(); // Reset projectChanged state to hide button
+                const now = new Date();
+                this.setState({
+                    cloudSaveStatus: 'saved',
+                    lastSavedTime: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                });
+                if (!isAutoSave) {
+                    Swal.fire({
+                        heightAuto: false,
+                        title: 'Success!',
+                        text: `Project "${title}" saved to cloud!`,
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
+                setTimeout(() => this.setState({cloudSaveStatus: null}), 3000);
+            })
+            .catch(err => {
+                console.error('Cloud save failed:', err);
+                this.setState({cloudSaveStatus: 'error'});
+                if (!isAutoSave) {
+                    Swal.fire({
+                        heightAuto: false,
+                        title: 'Error',
+                        text: `Failed to save: ${err.message}`,
+                        icon: 'error'
+                    });
+                }
+                setTimeout(() => this.setState({cloudSaveStatus: null}), 3000);
+            });
+    }
+    handleLogout () {
+        supabase.auth.signOut().then(() => {
+            this.props.onSupabaseLogout();
+        });
     }
     handleClickNew () {
         // if the project is dirty, and user owns the project, we will autosave.
@@ -568,7 +689,7 @@ class MenuBar extends React.Component {
                                             </MenuItem>
                                         )}</SB3Downloader>
                                     </MenuSection>
-                                    <MenuSection>
+                                    {/* <MenuSection>
 
                                     <MenuItem>
                                         <GoogleDrivePickerButton
@@ -579,7 +700,23 @@ class MenuBar extends React.Component {
                                     <MenuItem onClick={this.handleSaveToGoogleDrive}
                                     > Save to Google Drive
                                     </MenuItem>
-                                    </MenuSection>
+                                    </MenuSection> */}
+                                    {/* Cloud items restored to File menu */}
+                                    {this.props.authUser && (
+                                        <MenuSection>
+                                            <MenuItem
+                                                onClick={() => this.handleSaveToCloud(false)}
+                                            >
+                                                {this.state.cloudSaveStatus === 'saving' ?
+                                                    'Saving...' : 'Save to Cloud'}
+                                            </MenuItem>
+                                            <MenuItem
+                                                onClick={this.handleOpenMyProjects}
+                                            >
+                                                {'My Projects'}
+                                            </MenuItem>
+                                        </MenuSection>
+                                    )}
                                 </MenuBarMenu>
                             </div>
                         )}
@@ -720,6 +857,47 @@ class MenuBar extends React.Component {
                             username={this.props.authorUsername}
                         />
                     ) : null)}
+                    
+                    {/* Cloud Save Controls in the top bar */}
+                    {this.props.authUser && (
+                        <div className={classNames(styles.menuBarItem)}>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                                {this.props.projectChanged && (
+                                    <button
+                                        onClick={() => this.handleSaveToCloud(false)}
+                                        style={{
+                                            backgroundColor: 'rgba(0, 0, 0, 0.15)',
+                                            border: '1px solid rgba(255, 255, 255, 0.3)',
+                                            borderRadius: '4px',
+                                            padding: '4px 12px',
+                                            color: 'white',
+                                            fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                                            fontSize: '0.85rem',
+                                            fontWeight: 'bold',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        {this.state.cloudSaveStatus === 'saving' ? 'Saving...' : 'Save to Cloud'}
+                                    </button>
+                                )}
+                                
+                                <label style={{display: 'flex', alignItems: 'center', color: 'white', fontSize: '0.85rem', cursor: 'pointer', fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif'}}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={this.state.autoSaveEnabled} 
+                                        onChange={this.handleToggleAutoSave}
+                                        style={{marginRight: '6px', cursor: 'pointer'}}
+                                    />
+                                    Auto-save
+                                </label>
+                                {this.state.lastSavedTime && (
+                                    <span style={{color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.75rem', fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif', fontStyle: 'italic'}}>
+                                        {`Last saved: ${this.state.lastSavedTime}`}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    )}
                     <div className={classNames(styles.menuBarItem)}>
                         {this.props.canShare ? (
                             (this.props.isShowingProject || this.props.isUpdating) && (
@@ -774,138 +952,73 @@ class MenuBar extends React.Component {
                     </div>
                 </div>
 
-
-                {/* show the proper UI in the account menu, given whether the user is
-                logged in, and whether a session is available to log in with */}
+                {/* Supabase-based login/logout UI */}
                 <div className={styles.accountInfoGroup}>
                     <div className={styles.menuBarItem}>
                         {this.props.canSave && (
                             <SaveStatus />
                         )}
                     </div>
-                    {this.props.sessionExists ? (
-                        this.props.username ? (
-                            // ************ user is logged in ************
-                            <React.Fragment>
-                                <a href="/mystuff/">
-                                    <div
-                                        className={classNames(
-                                            styles.menuBarItem,
-                                            styles.hoverable,
-                                            styles.mystuffButton
-                                        )}
-                                    >
-                                        <img
-                                            className={styles.mystuffIcon}
-                                            src={mystuffIcon}
-                                        />
-                                    </div>
-                                </a>
-                                <AccountNav
-                                    className={classNames(
-                                        styles.menuBarItem,
-                                        styles.hoverable,
-                                        {[styles.active]: this.props.accountMenuOpen}
-                                    )}
-                                    isOpen={this.props.accountMenuOpen}
-                                    isRtl={this.props.isRtl}
-                                    menuBarMenuClassName={classNames(styles.menuBarMenu)}
-                                    onClick={this.props.onClickAccount}
-                                    onClose={this.props.onRequestCloseAccount}
-                                    onLogOut={this.props.onLogOut}
-                                />
-                            </React.Fragment>
-                        ) : (
-                            // ********* user not logged in, but a session exists
-                            // ********* so they can choose to log in
-                            <React.Fragment>
-                                <div
-                                    className={classNames(
-                                        styles.menuBarItem,
-                                        styles.hoverable
-                                    )}
-                                    key="join"
-                                    onMouseUp={this.props.onOpenRegistration}
-                                >
-                                    <FormattedMessage
-                                        defaultMessage="Join Scratch"
-                                        description="Link for creating a Scratch account"
-                                        id="gui.menuBar.joinScratch"
-                                    />
-                                </div>
-                                <div
-                                    className={classNames(
-                                        styles.menuBarItem,
-                                        styles.hoverable
-                                    )}
-                                    key="login"
-                                    onMouseUp={this.props.onClickLogin}
-                                >
-                                    <FormattedMessage
-                                        defaultMessage="Sign in"
-                                        description="Link for signing in to your Scratch account"
-                                        id="gui.menuBar.signIn"
-                                    />
-                                    <LoginDropdown
-                                        className={classNames(styles.menuBarMenu)}
-                                        isOpen={this.props.loginMenuOpen}
-                                        isRtl={this.props.isRtl}
-                                        renderLogin={this.props.renderLogin}
-                                        onClose={this.props.onRequestCloseLogin}
-                                    />
-                                </div>
-                            </React.Fragment>
-                        )
-                    ) : (
-                        // ******** no login session is available, so don't show login stuff
+                    {this.props.authUser ? (
+                        // ************ user is logged in via Supabase ************
                         <React.Fragment>
-                            {this.props.showComingSoon ? (
-                                <React.Fragment>
-                                    <MenuBarItemTooltip id="mystuff">
-                                        <div
-                                            className={classNames(
-                                                styles.menuBarItem,
-                                                styles.hoverable,
-                                                styles.mystuffButton
-                                            )}
-                                        >
-                                            <img
-                                                className={styles.mystuffIcon}
-                                                src={mystuffIcon}
-                                            />
-                                        </div>
-                                    </MenuBarItemTooltip>
-                                    <MenuBarItemTooltip
-                                        id="account-nav"
-                                        place={this.props.isRtl ? 'right' : 'left'}
-                                    >
-                                        <div
-                                            className={classNames(
-                                                styles.menuBarItem,
-                                                styles.hoverable,
-                                                styles.accountNavMenu
-                                            )}
-                                        >
-                                            <img
-                                                className={styles.profileIcon}
-                                                src={profileIcon}
-                                            />
-                                            <span>
-                                                {'scratch-cat'}
-                                            </span>
-                                            <img
-                                                className={styles.dropdownCaretIcon}
-                                                src={dropdownCaret}
-                                            />
-                                        </div>
-                                    </MenuBarItemTooltip>
-                                </React.Fragment>
-                            ) : []}
+                            <div
+                                className={classNames(
+                                    styles.menuBarItem,
+                                    styles.hoverable
+                                )}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    color: 'white',
+                                    fontWeight: 600
+                                }}
+                            >
+                                <img
+                                    className={styles.profileIcon}
+                                    src={profileIcon}
+                                />
+                                <span>{this.props.authUser.username}</span>
+                            </div>
+                            <div
+                                className={classNames(
+                                    styles.menuBarItem,
+                                    styles.hoverable
+                                )}
+                                style={{cursor: 'pointer'}}
+                                onClick={this.handleLogout}
+                            >
+                                {'Sign Out'}
+                            </div>
                         </React.Fragment>
+                    ) : (
+                        // ********* user not logged in — show Sign In button *********
+                        <div
+                            className={classNames(
+                                styles.menuBarItem,
+                                styles.hoverable
+                            )}
+                            style={{cursor: 'pointer'}}
+                            onClick={this.handleOpenLoginModal}
+                        >
+                            {'Sign In'}
+                        </div>
                     )}
                 </div>
 
                 {aboutButton}
+
+                {/* Login and My Projects modals */}
+                <LoginModal
+                    isOpen={this.state.loginModalOpen}
+                    onClose={this.handleCloseLoginModal}
+                />
+                <MyProjectsModal
+                    isOpen={this.state.myProjectsModalOpen}
+                    onClose={this.handleCloseMyProjects}
+                    onUpdateProjectTitle={this.props.onUpdateProjectTitle}
+                />
             </Box>
         );
     }
@@ -914,6 +1027,11 @@ class MenuBar extends React.Component {
 MenuBar.propTypes = {
     aboutMenuOpen: PropTypes.bool,
     accountMenuOpen: PropTypes.bool,
+    authUser: PropTypes.shape({
+        id: PropTypes.string,
+        email: PropTypes.string,
+        username: PropTypes.string
+    }),
     authorId: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
     authorThumbnailUrl: PropTypes.string,
     authorUsername: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
@@ -985,7 +1103,11 @@ MenuBar.propTypes = {
     onShare: PropTypes.func,
     onStartSelectingFileUpload: PropTypes.func,
     onProjectLoadFromExternalSource: PropTypes.func,
+    onSupabaseLoginSuccess: PropTypes.func,
+    onSupabaseLogout: PropTypes.func,
     onToggleLoginOpen: PropTypes.func,
+    onUpdateProjectTitle: PropTypes.func,
+    projectChanged: PropTypes.bool,
     projectTitle: PropTypes.string,
     renderLogin: PropTypes.func,
     sessionExists: PropTypes.bool,
@@ -1009,6 +1131,7 @@ const mapStateToProps = (state, ownProps) => {
     return {
         aboutMenuOpen: aboutMenuOpen(state),
         accountMenuOpen: accountMenuOpen(state),
+        authUser: state.scratchGui.auth.user,
         currentLocale: state.locales.locale,
         fileMenuOpen: fileMenuOpen(state),
         editMenuOpen: editMenuOpen(state),
@@ -1018,6 +1141,7 @@ const mapStateToProps = (state, ownProps) => {
         locale: state.locales.locale,
         loginMenuOpen: loginMenuOpen(state),
         modeMenuOpen: modeMenuOpen(state),
+        projectChanged: state.scratchGui.projectChanged,
         projectTitle: state.scratchGui.projectTitle,
         sessionExists: state.session && typeof state.session.session !== 'undefined',
         settingsMenuOpen: settingsMenuOpen(state),
@@ -1065,7 +1189,11 @@ const mapDispatchToProps = dispatch => ({
     onClickSave: () => dispatch(manualUpdateProject()),
     onClickSaveAsCopy: () => dispatch(saveProjectAsCopy()),
     onSeeCommunity: () => dispatch(setPlayer(true)),
-    onSetTimeTravelMode: mode => dispatch(setTimeTravel(mode))
+    onSetTimeTravelMode: mode => dispatch(setTimeTravel(mode)),
+    onSupabaseLoginSuccess: user => dispatch(loginSuccess(user)),
+    onSupabaseLogout: () => dispatch(logoutAction()),
+    onUpdateProjectTitle: title => dispatch(setProjectTitle(title)),
+    onSetProjectUnchanged: () => dispatch(setProjectUnchanged())
 });
 
 export default compose(

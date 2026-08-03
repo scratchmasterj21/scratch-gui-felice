@@ -9,10 +9,28 @@ import ControlsComponent from '../components/controls/controls.jsx';
 class Controls extends React.Component {
     constructor (props) {
         super(props);
+        this.state = {
+            cloneCount: 0
+        };
         bindAll(this, [
             'handleGreenFlagClick',
-            'handleStopAllClick'
+            'handleStopAllClick',
+            'updateCloneCount'
         ]);
+    }
+    componentDidMount () {
+        this.interval = setInterval(this.updateCloneCount, 50);
+    }
+    componentWillUnmount () {
+        clearInterval(this.interval);
+    }
+    updateCloneCount () {
+        if (this.props.vm && this.props.vm.runtime) {
+            const count = this.props.vm.runtime.targets.filter(t => !t.isOriginal).length;
+            if (count !== this.state.cloneCount) {
+                this.setState({ cloneCount: count });
+            }
+        }
     }
     handleGreenFlagClick (e) {
         e.preventDefault();
@@ -42,6 +60,7 @@ class Controls extends React.Component {
                 {...props}
                 active={projectRunning}
                 turbo={turbo}
+                cloneCount={this.state.cloneCount}
                 onGreenFlagClick={this.handleGreenFlagClick}
                 onStopAllClick={this.handleStopAllClick}
             />

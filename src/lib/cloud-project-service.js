@@ -1,0 +1,137 @@
+import {supabase} from './supabase';
+
+const BUCKET_NAME = 'scratch-projects';
+
+/**
+ * Save a project to Supabase.
+ * Uploads the .sb3 blob to Storage and upserts metadata in the projects table.
+ * @param {string} userId - The authenticated user's ID
+ * @param {string} title - The project title
+ * @param {Blob} sb3Blob - The .sb3 file as a Blob
+ * @param {string|null} existingProjectId - If updating an existing project, its ID
+ * @returns {Promise<object>} The saved project metadata row
+ */
+export const saveProject = async (userId, title, sb3Blob) => {
+    const fileName = `${title.replace(/[^a-zA-Z0-9_-]/g, '_')}.sb3`;
+    const filePath = `${userId}/${fileName}`;
+
+    // Check if a project with the same title exists for this user
+    let existingId = null;
+    const {data: existingList} = await supabase
+        .from('projects')
+        .select('id, file_path')
+        .eq('user_id', userId)
+        .eq('title', title);
+
+    if (existingList && existingList.length > 0) {
+        existingId = existingList[0].id;
+    }
+
+    // Upload .sb3 file to Storage (use upsert: true to overwrite)
+    const {error: uploadError} = await supabase.storage
+        .from(BUCKET_NAME)
+        .upload(filePath, sb3Blob, {
+            contentType: 'application/octet-stream',
+            upsert: true
+        });
+
+    if (uploadError) {
+        throw new Error(`Failed to upload project file: ${uploadError.message}`);
+    }
+
+    // Insert or update metadata in projects table
+    const projectData = {
+        user_id: userId,
+        title: title,
+        file_path: filePath,
+        updated_at: new Date().toISOString()
+    };
+
+    let result;
+    if (existingId) {
+        // Update existing record
+        const {data, error} = await supabase
+            .from('projects')
+            .update(projectData)
+            .eq('id', existingId)
+            .select()
+            .single();
+        if (error) throw new Error(`Failed to update project record: ${error.message}`);
+        result = data;
+    } else {
+        // Insert new record
+        const {data, error} = await supabase
+            .from('projects')
+            .insert(projectData)
+            .select()
+            .single();
+        if (error) throw new Error(`Failed to create project record: ${error.message}`);
+        result = data;
+    }
+
+    return result;
+};
+
+/**
+ * List all projects for a given user.
+ * @param {string} userId - The authenticated user's ID
+ * @returns {Promise<Array>} Array of project metadata objects
+ */
+export const listProjects = async userId => {
+    const {data, error} = await supabase
+        .from('projects')
+        .select('*')
+        .eq('user_id', userId)
+        .order('updated_at', {ascending: false});
+
+    if (error) {
+        throw new Error(`Failed to list projects: ${error.message}`);
+    }
+
+    return data || [];
+};
+
+/**
+ * Load a project file from Supabase Storage.
+ * @param {string} filePath - The storage path (e.g. "user-id/filename.sb3")
+ * @returns {Promise<ArrayBuffer>} The project file as an ArrayBuffer
+ */
+export const loadProject = async filePath => {
+    const {data, error} = await supabase.storage
+        .from(BUCKET_NAME)
+        .download(filePath);
+
+    if (error) {
+        throw new Error(`Failed to download project: ${error.message}`);
+    }
+
+    return data.arrayBuffer();
+};
+
+/**
+ * Delete a project (both the Storage file and DB record).
+ * @param {string} projectId - The project's UUID in the projects table
+ * @param {string} filePath - The storage path to delete
+ * @returns {Promise<void>}
+ */
+export const deleteProject = async (projectId, filePath) => {
+    // Delete file from Storage
+    const {error: storageError} = await supabase.storage
+        .from(BUCKET_NAME)
+        .remove([filePath]);
+
+    if (storageError) {
+        console.warn('Failed to delete storage file:', storageError.message);
+        // Continue to delete DB record even if file deletion fails
+    }
+
+    // Delete record from DB
+    const {error: dbError} = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+    if (dbError) {
+        throw new Error(`Failed to delete project record: ${dbError.message}`);
+    }
+};
