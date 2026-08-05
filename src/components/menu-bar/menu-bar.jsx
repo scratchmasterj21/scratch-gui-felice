@@ -284,7 +284,7 @@ class MenuBar extends React.Component {
         const title = this.props.projectTitle || 'Untitled';
         this.setState({cloudSaveStatus: 'saving'});
         this.props.vm.saveProjectSb3()
-            .then(blob => saveProject(user.id, title, blob))
+            .then(blob => saveProject(user.id, user.email, title, blob))
             .then(() => {
                 this.props.onSetProjectUnchanged(); // Reset projectChanged state to hide button
                 const now = new Date();
@@ -1120,7 +1120,7 @@ MenuBar.propTypes = {
 };
 
 MenuBar.defaultProps = {
-    logo: scratchLogo,
+    logo: 'https://i.imgur.com/0J5brlL.png',
     onShare: () => {}
 };
 

@@ -56,6 +56,58 @@
     color: #575e75;
 }
 
+.tabsContainer {
+    display: flex;
+    border-bottom: 1px solid #e9e9e9;
+    padding: 0 24px;
+    background-color: #f9f9f9;
+    align-items: center;
+}
+
+.searchContainer {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+}
+
+.searchInput {
+    padding: 8px 12px;
+    border: 1px solid #d9d9d9;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    width: 200px;
+}
+
+.searchInput:focus {
+    border-color: #4c97ff;
+    box-shadow: 0 0 0 2px rgba(76, 151, 255, 0.2);
+}
+
+.tabButton {
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #999;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.tabButton:hover {
+    color: #575e75;
+}
+
+.tabButton.active {
+    color: #4c97ff;
+    border-bottom-color: #4c97ff;
+}
+
 .projectList {
     flex: 1;
     overflow-y: auto;
@@ -120,6 +172,14 @@
     color: #999;
 }
 
+.projectAuthor {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 0.75rem;
+    color: #0fbd8c;
+    margin-top: 2px;
+    font-weight: 500;
+}
+
 .projectActions {
     display: flex;
     gap: 8px;
@@ -146,6 +206,38 @@
 
 .loadButton:disabled {
     background-color: #b3d1ff;
+    cursor: not-allowed;
+}
+
+.shareButton {
+    padding: 8px 16px;
+    background-color: #0fbd8c;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.shareButton:hover {
+    background-color: #0da57a;
+}
+
+.shareButton.shared {
+    background-color: white;
+    color: #0fbd8c;
+    border: 1px solid #0fbd8c;
+}
+
+.shareButton.shared:hover {
+    background-color: #e6f8f3;
+}
+
+.shareButton:disabled {
+    opacity: 0.5;
     cursor: not-allowed;
 }
 

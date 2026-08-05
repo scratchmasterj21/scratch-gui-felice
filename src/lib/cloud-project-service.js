@@ -6,12 +6,13 @@ const BUCKET_NAME = 'scratch-projects';
  * Save a project to Supabase.
  * Uploads the .sb3 blob to Storage and upserts metadata in the projects table.
  * @param {string} userId - The authenticated user's ID
+ * @param {string} userEmail - The authenticated user's email
  * @param {string} title - The project title
  * @param {Blob} sb3Blob - The .sb3 file as a Blob
  * @param {string|null} existingProjectId - If updating an existing project, its ID
  * @returns {Promise<object>} The saved project metadata row
  */
-export const saveProject = async (userId, title, sb3Blob) => {
+export const saveProject = async (userId, userEmail, title, sb3Blob) => {
     const fileName = `${title.replace(/[^a-zA-Z0-9_-]/g, '_')}.sb3`;
     const filePath = `${userId}/${fileName}`;
 
@@ -42,6 +43,7 @@ export const saveProject = async (userId, title, sb3Blob) => {
     // Insert or update metadata in projects table
     const projectData = {
         user_id: userId,
+        author_email: userEmail,
         title: title,
         file_path: filePath,
         updated_at: new Date().toISOString()
@@ -86,6 +88,63 @@ export const listProjects = async userId => {
 
     if (error) {
         throw new Error(`Failed to list projects: ${error.message}`);
+    }
+
+    return data || [];
+};
+
+/**
+ * Share or unshare a project as a template.
+ * @param {string} projectId - The project's UUID
+ * @param {boolean} isTemplate - Whether it should be a template
+ */
+export const shareProjectTemplate = async (projectId, isTemplate) => {
+    const {data, error} = await supabase
+        .from('projects')
+        .update({is_template: isTemplate})
+        .eq('id', projectId)
+        .select()
+        .single();
+
+    if (error) {
+        throw new Error(`Failed to update project template status: ${error.message}`);
+    }
+
+    return data;
+};
+
+/**
+ * List all projects marked as templates.
+ * @returns {Promise<Array>} Array of shared template projects
+ */
+export const listSharedTemplates = async () => {
+    const {data, error} = await supabase
+        .from('projects')
+        .select('*')
+        .eq('is_template', true)
+        .order('updated_at', {ascending: false});
+
+    if (error) {
+        throw new Error(`Failed to list shared templates: ${error.message}`);
+    }
+
+    return data || [];
+};
+
+/**
+ * List all projects created by students (everyone except the teacher).
+ * @param {string} teacherUserId - The teacher's user ID
+ * @returns {Promise<Array>} Array of student projects
+ */
+export const listAllStudentProjects = async teacherUserId => {
+    const {data, error} = await supabase
+        .from('projects')
+        .select('*')
+        .neq('user_id', teacherUserId)
+        .order('updated_at', {ascending: false});
+
+    if (error) {
+        throw new Error(`Failed to list student projects: ${error.message}`);
     }
 
     return data || [];

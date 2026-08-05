@@ -11,7 +11,7 @@ import log from '../lib/log.js';
 function writeAccess() { DriveApp.addFile(); }
 
 const onClickLogo = () => {
-    window.location = 'https://scratchmasterj21.github.io/scratch-gui-felice/';
+    window.location = 'https://felice-scratch-lab.vercel.app/';
 };
 
 const handleTelemetryModalCancel = () => {
