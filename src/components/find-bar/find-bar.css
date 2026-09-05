@@ -1,0 +1,242 @@
+.find-bar-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
+    margin-left: 0.75rem;
+    user-select: none;
+    z-index: 200;
+}
+
+.find-input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.find-input {
+    width: 13rem;
+    height: 1.85rem;
+    padding: 0 0.65rem 0 1.85rem;
+    font-size: 0.78rem;
+    font-family: inherit;
+    font-weight: 500;
+    color: #4d4d4d;
+    background-color: #ffffff;
+    border: 1.5px solid #d9d9d9;
+    border-radius: 0.45rem;
+    outline: none;
+    transition: all 0.18s ease-in-out;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.find-input:focus {
+    border-color: #ff6680;
+    box-shadow: 0 0 0 2.5px rgba(255, 102, 128, 0.2), inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.find-search-icon {
+    position: absolute;
+    left: 0.55rem;
+    width: 0.85rem;
+    height: 0.85rem;
+    color: #999999;
+    pointer-events: none;
+}
+
+.find-clear-btn {
+    position: absolute;
+    right: 0.45rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: #e0e0e0;
+    color: #666;
+    font-size: 0.75rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.find-clear-btn:hover {
+    background: #cfcfcf;
+    color: #333;
+}
+
+/* Dropdown Menu */
+.find-dropdown {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    min-width: 17rem;
+    max-width: 22rem;
+    max-height: 20rem;
+    overflow-y: auto;
+    background: #ffffff;
+    border-radius: 0.55rem;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 0.35rem 0;
+    margin: 0;
+    list-style: none;
+    z-index: 1000;
+}
+
+.find-dropdown::-webkit-scrollbar {
+    width: 6px;
+}
+
+.find-dropdown::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.find-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.45rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #333333;
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+    white-space: nowrap;
+}
+
+.find-item-content {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-grow: 1;
+}
+
+.find-item:hover,
+.find-item.selected {
+    background-color: #f2f5fc;
+}
+
+.find-item b {
+    color: #111111;
+    background-color: #fffa99;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+/* Category Dots */
+.find-dot {
+    display: inline-block;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.dot-flag {
+    background-color: #4cbf56;
+}
+
+.dot-event,
+.dot-receive {
+    background-color: #ffbf00;
+}
+
+.dot-define {
+    background-color: #ff6680;
+}
+
+.dot-var,
+.dot-VAR {
+    background-color: #ff8c1a;
+}
+
+.dot-list,
+.dot-LIST {
+    background-color: #ff661a;
+}
+
+.dot-costume {
+    background-color: #9966ff;
+}
+
+.dot-sound {
+    background-color: #cf63cf;
+}
+
+/* Labels with matching color */
+.find-label-flag {
+    color: #388e3c;
+}
+
+.find-label-event,
+.find-label-receive {
+    color: #c98a00;
+}
+
+.find-label-define {
+    color: #d83a56;
+}
+
+.find-label-var,
+.find-label-VAR {
+    color: #d97706;
+}
+
+.find-label-list,
+.find-label-LIST {
+    color: #ea580c;
+}
+
+.find-label-costume {
+    color: #7c3aed;
+}
+
+.find-label-sound {
+    color: #b030b0;
+}
+
+/* Carousel Navigator */
+.find-carousel {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.1rem 0.35rem;
+    background: #e8ecf4;
+    border-radius: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #555555;
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+}
+
+.find-carousel-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.2rem;
+    cursor: pointer;
+    font-size: 0.68rem;
+    user-select: none;
+    border-radius: 3px;
+    transition: all 0.1s ease;
+}
+
+.find-carousel-btn:hover {
+    background-color: #d2d9e8;
+    color: #111111;
+}
+
+.find-no-results {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.75rem;
+    color: #888888;
+    font-style: italic;
+    text-align: center;
+}
