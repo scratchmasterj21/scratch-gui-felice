@@ -1,34 +1,47 @@
 const myFlash = {
-    block: null,
+    blocks: [],
     timerID: null
 };
 
 class BlockFlasher {
     /**
-     * Flash a block 3 times with a bright highlight color.
+     * Flash a block (and its prototype if custom block) 3 times with a bright highlight color.
      * @param {object} block - Blockly block SVG instance
      */
     static flash (block) {
-        const getSvgPath = b => {
-            if (!b) return null;
-            if (b.pathObject && b.pathObject.svgPath) return b.pathObject.svgPath;
-            return b.svgPath_;
+        if (!block) return;
+
+        const getSvgPaths = b => {
+            if (!b) return [];
+            const paths = [];
+            if (b.svgPath_) paths.push(b.svgPath_);
+            if (b.pathObject && b.pathObject.svgPath) paths.push(b.pathObject.svgPath);
+            if (b.getChildren) {
+                const children = b.getChildren();
+                for (const child of children) {
+                    if (child.svgPath_) paths.push(child.svgPath_);
+                }
+            }
+            return paths;
         };
 
         if (myFlash.timerID > 0) {
             clearTimeout(myFlash.timerID);
-            if (getSvgPath(myFlash.block)) {
-                getSvgPath(myFlash.block).style.fill = '';
+            for (const p of myFlash.blocks) {
+                p.style.fill = '';
             }
+            myFlash.blocks = [];
         }
+
+        const targetPaths = getSvgPaths(block);
+        if (targetPaths.length === 0) return;
 
         let count = 6;
         let flashOn = true;
-        myFlash.block = block;
+        myFlash.blocks = targetPaths;
 
         const _flash = () => {
-            const svgPath = getSvgPath(myFlash.block);
-            if (svgPath) {
+            for (const svgPath of myFlash.blocks) {
                 svgPath.style.fill = flashOn ? '#ffff80' : '';
             }
             flashOn = !flashOn;
@@ -37,7 +50,7 @@ class BlockFlasher {
                 myFlash.timerID = setTimeout(_flash, 150);
             } else {
                 myFlash.timerID = 0;
-                myFlash.block = null;
+                myFlash.blocks = [];
             }
         };
 

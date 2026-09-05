@@ -271,9 +271,18 @@ class FindBar extends React.Component {
                         }
                     });
                     scrollBlockIntoView(workspace, uses[0], vm);
-                } else if (item.id) {
-                    this.setState({carousel: null});
-                    scrollBlockIntoView(workspace, item.id, vm);
+                } else {
+                    this.setState({
+                        carousel: {
+                            itemIndex: index,
+                            blocks: [],
+                            current: 0,
+                            total: 0
+                        }
+                    });
+                    if (workspace && workspace.toolbox_) {
+                        workspace.toolbox_.setSelectedCategoryById('variables');
+                    }
                 }
             } else if (cls === 'define') {
                 const uses = getProcedureUses(workspace, item.id);
@@ -287,9 +296,14 @@ class FindBar extends React.Component {
                         }
                     });
                     scrollBlockIntoView(workspace, uses[0], vm);
+                } else if (uses.length === 1) {
+                    this.setState({carousel: null});
+                    scrollBlockIntoView(workspace, uses[0], vm);
                 } else {
                     this.setState({carousel: null});
-                    scrollBlockIntoView(workspace, item.id, vm);
+                    if (workspace && workspace.toolbox_) {
+                        workspace.toolbox_.setSelectedCategoryById('myBlocks');
+                    }
                 }
             } else if (cls === 'receive') {
                 const uses = getBroadcastUses(vm, item.eventName);
