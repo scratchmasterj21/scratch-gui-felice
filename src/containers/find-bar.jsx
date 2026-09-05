@@ -21,6 +21,7 @@ class FindBar extends React.Component {
         bindAll(this, [
             'handleGlobalKeyDown',
             'handleDocumentClick',
+            'handleInputBlur',
             'handleInputChange',
             'handleInputFocus',
             'handleInputKeyDown',
@@ -60,12 +61,16 @@ class FindBar extends React.Component {
 
     componentDidMount () {
         window.addEventListener('keydown', this.handleGlobalKeyDown, true);
-        document.addEventListener('mousedown', this.handleDocumentClick, false);
+        window.addEventListener('pointerdown', this.handleDocumentClick, true);
+        window.addEventListener('touchstart', this.handleDocumentClick, true);
+        window.addEventListener('mousedown', this.handleDocumentClick, true);
     }
 
     componentWillUnmount () {
         window.removeEventListener('keydown', this.handleGlobalKeyDown, true);
-        document.removeEventListener('mousedown', this.handleDocumentClick, false);
+        window.removeEventListener('pointerdown', this.handleDocumentClick, true);
+        window.removeEventListener('touchstart', this.handleDocumentClick, true);
+        window.removeEventListener('mousedown', this.handleDocumentClick, true);
     }
 
     getWorkspace () {
@@ -107,6 +112,19 @@ class FindBar extends React.Component {
         const isClickInsideDropdown = this.dropdownRef.current && this.dropdownRef.current.contains(e.target);
 
         if (!isClickInsideInput && !isClickInsideDropdown) {
+            this.setState({
+                isOpen: false,
+                carousel: null
+            });
+        }
+    }
+
+    handleInputBlur (e) {
+        const isFocusInsideDropdown = this.dropdownRef.current &&
+            e.relatedTarget &&
+            this.dropdownRef.current.contains(e.relatedTarget);
+
+        if (!isFocusInsideDropdown) {
             this.setState({
                 isOpen: false,
                 carousel: null
@@ -425,6 +443,7 @@ class FindBar extends React.Component {
                 onCarouselNext={this.handleCarouselNext}
                 onCarouselPrev={this.handleCarouselPrev}
                 onClear={this.handleClear}
+                onInputBlur={this.handleInputBlur}
                 onInputChange={this.handleInputChange}
                 onInputFocus={this.handleInputFocus}
                 onInputKeyDown={this.handleInputKeyDown}

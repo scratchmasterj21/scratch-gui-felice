@@ -159,6 +159,7 @@ const FindBarComponent = props => (
                 value={props.query}
                 onChange={props.onInputChange}
                 onFocus={props.onInputFocus}
+                onBlur={props.onInputBlur}
                 onKeyDown={props.onInputKeyDown}
             />
             {props.query.length > 0 && (
@@ -215,6 +216,7 @@ FindBarComponent.propTypes = {
     onCarouselNext: PropTypes.func,
     onCarouselPrev: PropTypes.func,
     onClear: PropTypes.func,
+    onInputBlur: PropTypes.func,
     onInputChange: PropTypes.func,
     onInputFocus: PropTypes.func,
     onInputKeyDown: PropTypes.func,
