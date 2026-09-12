@@ -1,16 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {compose} from 'redux';
-import useDrivePicker from 'react-google-drive-picker';
 
 import AppStateHOC from '../lib/app-state-hoc.jsx';
 import GUI from '../containers/gui.jsx';
 import HashParserHOC from '../lib/hash-parser-hoc.jsx';
 import log from '../lib/log.js';
-
-function writeAccess () {
-    DriveApp.addFile();
-}
 
 const onClickLogo = () => {
     window.location = 'https://felice-scratch-lab.vercel.app/';

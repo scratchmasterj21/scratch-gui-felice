@@ -6,8 +6,6 @@ import PropTypes from 'prop-types';
 import bindAll from 'lodash.bindall';
 import bowser from 'bowser';
 import React from 'react';
-import GoogleDrivePickerButton from './google-drive-btn.jsx'; // Adjust the import path as necessary
-import {loadGoogleApis, uploadFileToGoogleDrive} from './drive-utils.jsx';
 import VM from 'scratch-vm';
 
 import LoginModal from '../login-modal/login-modal.jsx';
@@ -202,7 +200,6 @@ class MenuBar extends React.Component {
             'handleKeyPress',
             'handleRestoreOption',
             'getSaveToComputerHandler',
-            'handleSaveToGoogleDrive',
             'restoreOptionMessage',
             'handleOpenLoginModal',
             'handleCloseLoginModal',
@@ -449,35 +446,6 @@ class MenuBar extends React.Component {
         };
     }
 
-    handleSaveToGoogleDrive = () => {
-        this.props.onRequestCloseFile();
-        this.props.saveProjectSb3().then(blob => {
-            const fileName = this.props.projectFilename;
-            loadGoogleApis(accessToken => {
-                if (accessToken) {
-                    uploadFileToGoogleDrive(blob, fileName, accessToken,
-                        result => {
-                            console.log('Upload successful:', result);
-                            if (this.props.onProjectTelemetryEvent) {
-                                const metadata = this.collectMetadata();
-                                this.props.onProjectTelemetryEvent('projectDidSaveToGoogleDrive', metadata);
-                            }
-                        },
-                        error => {
-                            console.error('Upload failed:', error);
-                        }
-                    );
-                } else {
-                    console.error('No access token available.');
-                }
-            });
-        })
-            .catch(error => {
-                console.error('Error fetching the project blob:', error);
-            });
-    };
-    
-    
     restoreOptionMessage (deletedItem) {
         switch (deletedItem) {
         case 'Sprite':
@@ -720,18 +688,6 @@ class MenuBar extends React.Component {
                                             />
                                         </MenuItem>
                                     </MenuSection>
-                                    {/* <MenuSection>
-
-                                    <MenuItem>
-                                        <GoogleDrivePickerButton
-                                          developerKey="AIzaSyCvjU_vpqkCfb1EB56w4lo3vXNnvGHG4fs"
-                                          onProjectLoadFromExternalSource={this.props.onProjectLoadFromExternalSource} // You provide this from SBFileUploaderHOC
-                                    />
-                                    </MenuItem>
-                                    <MenuItem onClick={this.handleSaveToGoogleDrive}
-                                    > Save to Google Drive
-                                    </MenuItem>
-                                    </MenuSection> */}
                                     {/* Cloud items restored to File menu */}
                                     {this.props.authUser && (
                                         <MenuSection>
