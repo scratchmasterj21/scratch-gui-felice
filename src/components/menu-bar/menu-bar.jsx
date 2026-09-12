@@ -314,7 +314,7 @@ class MenuBar extends React.Component {
                 const now = new Date();
                 this.setState({
                     cloudSaveStatus: 'saved',
-                    lastSavedTime: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                    lastSavedTime: now.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
                 });
                 if (!isAutoSave) {
                     Swal.fire({
@@ -453,17 +453,17 @@ class MenuBar extends React.Component {
         this.props.onRequestCloseFile();
         this.props.saveProjectSb3().then(blob => {
             const fileName = this.props.projectFilename;
-            loadGoogleApis((accessToken) => {
+            loadGoogleApis(accessToken => {
                 if (accessToken) {
                     uploadFileToGoogleDrive(blob, fileName, accessToken,
-                        (result) => {
+                        result => {
                             console.log('Upload successful:', result);
                             if (this.props.onProjectTelemetryEvent) {
                                 const metadata = this.collectMetadata();
                                 this.props.onProjectTelemetryEvent('projectDidSaveToGoogleDrive', metadata);
                             }
                         },
-                        (error) => {
+                        error => {
                             console.error('Upload failed:', error);
                         }
                     );
@@ -471,11 +471,11 @@ class MenuBar extends React.Component {
                     console.error('No access token available.');
                 }
             });
-        }).catch(error => {
-            console.error('Error fetching the project blob:', error);
-        });
+        })
+            .catch(error => {
+                console.error('Error fetching the project blob:', error);
+            });
     };
-    
     
     
     restoreOptionMessage (deletedItem) {
@@ -622,7 +622,7 @@ class MenuBar extends React.Component {
                                 onClick={this.props.onClickLogo}
                             />
                         </div>
-                        {/*{(this.props.canChangeTheme || this.props.canChangeLanguage) && (<SettingsMenu
+                        {/* {(this.props.canChangeTheme || this.props.canChangeLanguage) && (<SettingsMenu
                             canChangeLanguage={this.props.canChangeLanguage}
                             canChangeTheme={this.props.canChangeTheme}
                             isRtl={this.props.isRtl}
@@ -652,15 +652,15 @@ class MenuBar extends React.Component {
                                 })}
                                 onMouseUp={this.props.onClickFile}
                             >
-                                {/*<img src={fileIcon} />*/}
-                                {/*<span className={styles.collapsibleLabel}>*/}
-                                    <FormattedMessage
-                                        defaultMessage="File"
-                                        description="Text for file dropdown menu"
-                                        id="gui.menuBar.file"
-                                    />
-                                {/*</span>*/}
-                                {/*<img src={dropdownCaret} />*/}
+                                {/* <img src={fileIcon} />*/}
+                                {/* <span className={styles.collapsibleLabel}>*/}
+                                <FormattedMessage
+                                    defaultMessage="File"
+                                    description="Text for file dropdown menu"
+                                    id="gui.menuBar.file"
+                                />
+                                {/* </span>*/}
+                                {/* <img src={dropdownCaret} />*/}
                                 <MenuBarMenu
                                     className={classNames(styles.menuBarMenu)}
                                     open={this.props.fileMenuOpen}
@@ -757,16 +757,16 @@ class MenuBar extends React.Component {
                             })}
                             onMouseUp={this.props.onClickEdit}
                         >
-                            {/*<img src={editIcon} />*/}
-                            {/*<span className={styles.collapsibleLabel}>*/}
-                                <FormattedMessage
-                                    defaultMessage="Edit"
-                                    description="Text for edit dropdown menu"
-                                    id="gui.menuBar.edit"
-                                />
-                            {/*</span>*/}
-                                {/*<img src={dropdownCaret} />*/}
-                                <MenuBarMenu
+                            {/* <img src={editIcon} />*/}
+                            {/* <span className={styles.collapsibleLabel}>*/}
+                            <FormattedMessage
+                                defaultMessage="Edit"
+                                description="Text for edit dropdown menu"
+                                id="gui.menuBar.edit"
+                            />
+                            {/* </span>*/}
+                            {/* <img src={dropdownCaret} />*/}
+                            <MenuBarMenu
                                 className={classNames(styles.menuBarMenu)}
                                 open={this.props.editMenuOpen}
                                 place={this.props.isRtl ? 'left' : 'right'}
@@ -866,7 +866,7 @@ class MenuBar extends React.Component {
                             </span>
                         </div>
                     </div>
-                <Divider className={classNames(styles.divider)} />
+                    <Divider className={classNames(styles.divider)} />
 
                     {this.props.canEditTitle ? (
                         <div className={classNames(styles.menuBarItem, styles.growable)}>
@@ -913,9 +913,9 @@ class MenuBar extends React.Component {
                                 )}
                                 
                                 <label style={{display: 'flex', alignItems: 'center', color: 'white', fontSize: '0.85rem', cursor: 'pointer', fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif'}}>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={this.state.autoSaveEnabled} 
+                                    <input
+                                        type="checkbox"
+                                        checked={this.state.autoSaveEnabled}
                                         onChange={this.handleToggleAutoSave}
                                         style={{marginRight: '6px', cursor: 'pointer'}}
                                     />

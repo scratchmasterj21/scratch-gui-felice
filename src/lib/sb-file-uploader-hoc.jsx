@@ -61,24 +61,24 @@ const SBFileUploaderHOC = function (WrappedComponent) {
             let loadingSuccess = false;
             console.log(fileData);
             console.log(fileName);
-        // You might need to convert the fileData to the appropriate format here
-        // if it's not already an ArrayBuffer, depending on how your VM expects to receive the file data.
+            // You might need to convert the fileData to the appropriate format here
+            // if it's not already an ArrayBuffer, depending on how your VM expects to receive the file data.
             this.props.onLoadingStarted();
             this.props.vm.loadProject(fileData)
-             .then(() => {
-                const uploadedProjectTitle = this.getProjectTitleFromFilename(fileName);
-                this.props.onSetProjectTitle(uploadedProjectTitle);
-                loadingSuccess = true;
+                .then(() => {
+                    const uploadedProjectTitle = this.getProjectTitleFromFilename(fileName);
+                    this.props.onSetProjectTitle(uploadedProjectTitle);
+                    loadingSuccess = true;
 
-             })     
-        .catch(error => {
-            log.warn(error);
-            alert(this.props.intl.formatMessage(messages.loadError));
-        })
-        .then(() => {
-            this.props.onLoadingFinished("LOADING_VM_FILE_UPLOAD", loadingSuccess);
-            this.removeFileObjects();
-        });
+                })
+                .catch(error => {
+                    log.warn(error);
+                    alert(this.props.intl.formatMessage(messages.loadError));
+                })
+                .then(() => {
+                    this.props.onLoadingFinished('LOADING_VM_FILE_UPLOAD', loadingSuccess);
+                    this.removeFileObjects();
+                });
         };
 
 

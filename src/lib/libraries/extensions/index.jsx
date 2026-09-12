@@ -66,9 +66,9 @@ export default [
         insetIconURL: faceSensingInsetIconURL,
         description: (
             <FormattedMessage
-                defaultMessage='Face Sensing Blocks.'
-                description='Face Sensing Blocks.'
-                id='gui.extension.facesensingblocks.description'
+                defaultMessage="Face Sensing Blocks."
+                description="Face Sensing Blocks."
+                id="gui.extension.facesensingblocks.description"
             />
         ),
         featured: true,
@@ -84,9 +84,9 @@ export default [
         insetIconURL: multitouchInsetIconURL,
         description: (
             <FormattedMessage
-                defaultMessage='Multi-touch controls for mobile games.'
-                description='Multi-touch controls.'
-                id='gui.extension.multitouch.description'
+                defaultMessage="Multi-touch controls for mobile games."
+                description="Multi-touch controls."
+                id="gui.extension.multitouch.description"
             />
         ),
         featured: true,
@@ -102,9 +102,9 @@ export default [
         insetIconURL: posenet2scratchInsetIconURL,
         description: (
             <FormattedMessage
-                defaultMessage='PoseNet2Scratch Blocks.'
-                description='PoseNet2Scratch Blocks.'
-                id='gui.extension.posenet2scratchblocks.description'
+                defaultMessage="PoseNet2Scratch Blocks."
+                description="PoseNet2Scratch Blocks."
+                id="gui.extension.posenet2scratchblocks.description"
             />
         ),
         featured: true,
@@ -120,9 +120,9 @@ export default [
         insetIconURL: ml2scratchInsetIconURL,
         description: (
             <FormattedMessage
-                defaultMessage='ML2Scratch Blocks.'
-                description='ML2Scratch Blocks.'
-                id='gui.extension.ml2scratchblocks.description'
+                defaultMessage="ML2Scratch Blocks."
+                description="ML2Scratch Blocks."
+                id="gui.extension.ml2scratchblocks.description"
             />
         ),
         featured: true,

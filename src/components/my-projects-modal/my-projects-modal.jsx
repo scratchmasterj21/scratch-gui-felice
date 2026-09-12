@@ -5,11 +5,11 @@ import {connect} from 'react-redux';
 import Swal from 'sweetalert2';
 
 import {
-    listProjects, 
-    loadProject, 
-    deleteProject, 
-    shareProjectTemplate, 
-    listSharedTemplates, 
+    listProjects,
+    loadProject,
+    deleteProject,
+    shareProjectTemplate,
+    listSharedTemplates,
     listAllStudentProjects
 } from '../../lib/cloud-project-service';
 
@@ -170,7 +170,7 @@ class MyProjectsModal extends React.Component {
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
             confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
+        }).then(result => {
             if (result.isConfirmed) {
                 this.setState({deletingProjectId: project.id});
                 deleteProject(project.id, project.file_path)
@@ -236,13 +236,13 @@ class MyProjectsModal extends React.Component {
                     <div className={styles.tabsContainer}>
                         {this.props.userEmail === 'john@felice.local' ? (
                             <React.Fragment>
-                                <button 
+                                <button
                                     className={`${styles.tabButton} ${this.state.activeTab === 'teacher' ? styles.active : ''}`}
                                     onClick={() => this.handleTabChange('teacher')}
                                 >
                                     Teacher
                                 </button>
-                                <button 
+                                <button
                                     className={`${styles.tabButton} ${this.state.activeTab === 'student' ? styles.active : ''}`}
                                     onClick={() => this.handleTabChange('student')}
                                 >
@@ -251,13 +251,13 @@ class MyProjectsModal extends React.Component {
                             </React.Fragment>
                         ) : (
                             <React.Fragment>
-                                <button 
+                                <button
                                     className={`${styles.tabButton} ${this.state.activeTab === 'student' ? styles.active : ''}`}
                                     onClick={() => this.handleTabChange('student')}
                                 >
                                     Student
                                 </button>
-                                <button 
+                                <button
                                     className={`${styles.tabButton} ${this.state.activeTab === 'teacher' ? styles.active : ''}`}
                                     onClick={() => this.handleTabChange('teacher')}
                                 >
@@ -304,7 +304,7 @@ class MyProjectsModal extends React.Component {
                                     <div className={styles.emptyState}>
                                         <div className={styles.emptyIcon}>{'📁'}</div>
                                         <div className={styles.emptyText}>
-                                            {this.state.searchQuery ? 
+                                            {this.state.searchQuery ?
                                                 `No projects found matching "${this.state.searchQuery}"` :
                                                 "You don't have any saved projects yet."}
                                             <br />
