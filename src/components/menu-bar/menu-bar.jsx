@@ -12,9 +12,10 @@ import VM from 'scratch-vm';
 
 import LoginModal from '../login-modal/login-modal.jsx';
 import MyProjectsModal from '../my-projects-modal/my-projects-modal.jsx';
+import AvatarPicker from '../avatar-picker/avatar-picker.jsx';
 import {saveProject} from '../../lib/cloud-project-service';
-import {supabase, emailToUsername} from '../../lib/supabase';
-import {loginSuccess, logout as logoutAction} from '../../reducers/auth';
+import {supabase, emailToUsername, getSavedAvatar, updateUserAvatar} from '../../lib/supabase';
+import {loginSuccess, logout as logoutAction, setAvatar} from '../../reducers/auth';
 import {setProjectTitle} from '../../reducers/project-title';
 import {setProjectUnchanged} from '../../reducers/project-changed';
 import Swal from 'sweetalert2';
@@ -209,11 +210,16 @@ class MenuBar extends React.Component {
             'handleCloseMyProjects',
             'handleSaveToCloud',
             'handleLogout',
-            'handleToggleAutoSave'
+            'handleToggleAutoSave',
+            'handleToggleAvatarPicker',
+            'handleCloseAvatarPicker',
+            'handleSelectAvatar'
         ]);
+        this.profileButtonRef = React.createRef();
         this.state = {
             loginModalOpen: false,
             myProjectsModalOpen: false,
+            avatarPickerOpen: false,
             cloudSaveStatus: null, // null, 'saving', 'saved', 'error'
             autoSaveEnabled: false,
             autoSaveIntervalId: null,
@@ -225,10 +231,12 @@ class MenuBar extends React.Component {
         // Check for existing Supabase session on mount
         supabase.auth.getSession().then(({data: {session}}) => {
             if (session && session.user) {
+                const avatar = getSavedAvatar(session.user.id, session.user.user_metadata);
                 this.props.onSupabaseLoginSuccess({
                     id: session.user.id,
                     email: session.user.email,
-                    username: emailToUsername(session.user.email)
+                    username: emailToUsername(session.user.email),
+                    avatar: avatar
                 });
             }
         });
@@ -238,6 +246,22 @@ class MenuBar extends React.Component {
         if (this.state.autoSaveIntervalId) {
             clearInterval(this.state.autoSaveIntervalId);
         }
+    }
+    handleToggleAvatarPicker () {
+        this.setState(prevState => ({
+            avatarPickerOpen: !prevState.avatarPickerOpen
+        }));
+    }
+    handleCloseAvatarPicker () {
+        this.setState({avatarPickerOpen: false});
+    }
+    handleSelectAvatar (avatar) {
+        const user = this.props.authUser;
+        if (user) {
+            this.props.onSetAvatar(avatar);
+            updateUserAvatar(user.id, avatar);
+        }
+        this.setState({avatarPickerOpen: false});
     }
     handleOpenLoginModal () {
         this.setState({loginModalOpen: true});
@@ -965,8 +989,10 @@ class MenuBar extends React.Component {
                             <div
                                 className={classNames(
                                     styles.menuBarItem,
-                                    styles.hoverable
+                                    styles.hoverable,
+                                    styles.profileButton
                                 )}
+                                ref={this.profileButtonRef}
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
@@ -974,12 +1000,32 @@ class MenuBar extends React.Component {
                                     color: 'white',
                                     fontWeight: 600
                                 }}
+                                title="Click to choose an emoji avatar"
+                                onClick={this.handleToggleAvatarPicker}
                             >
-                                <img
-                                    className={styles.profileIcon}
-                                    src={profileIcon}
-                                />
+                                {(!this.props.authUser.avatar || this.props.authUser.avatar === 'cat') ? (
+                                    <img
+                                        className={styles.profileIcon}
+                                        src={profileIcon}
+                                    />
+                                ) : (
+                                    <span className={styles.emojiAvatar}>
+                                        {this.props.authUser.avatar}
+                                    </span>
+                                )}
                                 <span>{this.props.authUser.username}</span>
+                                <img
+                                    className={styles.dropdownCaretIcon}
+                                    src={dropdownCaret}
+                                />
+                                <AvatarPicker
+                                    anchorRef={this.profileButtonRef}
+                                    currentAvatar={this.props.authUser.avatar || 'cat'}
+                                    isOpen={this.state.avatarPickerOpen}
+                                    username={this.props.authUser.username}
+                                    onClose={this.handleCloseAvatarPicker}
+                                    onSelectAvatar={this.handleSelectAvatar}
+                                />
                             </div>
                             <div
                                 className={classNames(
@@ -1017,6 +1063,7 @@ class MenuBar extends React.Component {
                 <MyProjectsModal
                     isOpen={this.state.myProjectsModalOpen}
                     onClose={this.handleCloseMyProjects}
+                    onSetProjectUnchanged={this.props.onSetProjectUnchanged}
                     onUpdateProjectTitle={this.props.onUpdateProjectTitle}
                 />
             </Box>
@@ -1030,7 +1077,8 @@ MenuBar.propTypes = {
     authUser: PropTypes.shape({
         id: PropTypes.string,
         email: PropTypes.string,
-        username: PropTypes.string
+        username: PropTypes.string,
+        avatar: PropTypes.string
     }),
     authorId: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]),
     authorThumbnailUrl: PropTypes.string,
@@ -1099,6 +1147,8 @@ MenuBar.propTypes = {
     onRequestCloseSettings: PropTypes.func,
     onRequestOpenAbout: PropTypes.func,
     onSeeCommunity: PropTypes.func,
+    onSetAvatar: PropTypes.func,
+    onSetProjectUnchanged: PropTypes.func,
     onSetTimeTravelMode: PropTypes.func,
     onShare: PropTypes.func,
     onStartSelectingFileUpload: PropTypes.func,
@@ -1189,6 +1239,7 @@ const mapDispatchToProps = dispatch => ({
     onClickSave: () => dispatch(manualUpdateProject()),
     onClickSaveAsCopy: () => dispatch(saveProjectAsCopy()),
     onSeeCommunity: () => dispatch(setPlayer(true)),
+    onSetAvatar: avatar => dispatch(setAvatar(avatar)),
     onSetTimeTravelMode: mode => dispatch(setTimeTravel(mode)),
     onSupabaseLoginSuccess: user => dispatch(loginSuccess(user)),
     onSupabaseLogout: () => dispatch(logoutAction()),

@@ -134,9 +134,12 @@ class MyProjectsModal extends React.Component {
                             let newTitle = project.title;
                             const isTeacher = this.props.userEmail === 'john@felice.local';
                             if (isTeacher && this.state.activeTab === 'student') {
-                                newTitle += " (Student Copy)";
+                                newTitle += ' (Student Copy)';
                             }
                             this.props.onUpdateProjectTitle(newTitle);
+                        }
+                        if (this.props.onSetProjectUnchanged) {
+                            this.props.onSetProjectUnchanged();
                         }
                         this.setState({loadingProjectId: null});
                         this.props.onClose();
@@ -372,6 +375,7 @@ class MyProjectsModal extends React.Component {
 MyProjectsModal.propTypes = {
     isOpen: PropTypes.bool.isRequired,
     onClose: PropTypes.func.isRequired,
+    onSetProjectUnchanged: PropTypes.func,
     onUpdateProjectTitle: PropTypes.func,
     userId: PropTypes.string,
     userEmail: PropTypes.string,

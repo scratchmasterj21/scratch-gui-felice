@@ -1,0 +1,192 @@
+@import "../../css/colors.css";
+@import "../../css/units.css";
+
+.avatar-picker-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999;
+}
+
+.avatar-picker-container {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 300px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(40, 20, 80, 0.22), 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(133, 92, 214, 0.2);
+    padding: 14px 16px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    animation: popIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+    cursor: default;
+    color: #333333;
+}
+
+@keyframes popIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.94) translateY(-6px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.avatar-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.avatar-picker-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #3c3c43;
+    margin: 0;
+}
+
+.avatar-picker-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: #8e8e93;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.avatar-picker-close-btn:hover {
+    background-color: #f2f2f7;
+    color: #1c1c1e;
+}
+
+.avatar-picker-current-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f7f4fc;
+    border: 1px solid #ebdffc;
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+}
+
+.current-preview-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    background: #ffffff;
+    box-shadow: 0 1px 4px rgba(133, 92, 214, 0.2);
+    overflow: hidden;
+}
+
+.current-preview-cat {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.current-preview-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.current-preview-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #855cd6;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.current-preview-username {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #2c2c2e;
+}
+
+.avatar-picker-scroll-area {
+    max-height: 240px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.avatar-picker-scroll-area::-webkit-scrollbar {
+    width: 6px;
+}
+
+.avatar-picker-scroll-area::-webkit-scrollbar-thumb {
+    background-color: #d1d1d6;
+    border-radius: 3px;
+}
+
+.avatar-picker-scroll-area::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.category-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #8e8e93;
+    margin: 8px 0 6px 2px;
+    letter-spacing: 0.5px;
+}
+
+.avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.avatar-option-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: #f2f2f7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.12s ease, background-color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+    user-select: none;
+}
+
+.avatar-option-btn:hover {
+    transform: scale(1.18);
+    background-color: #e5e5ea;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+    z-index: 2;
+}
+
+.avatar-option-btn.is-selected {
+    border-color: #855cd6;
+    background-color: #f1ebfa;
+    box-shadow: 0 0 0 2px rgba(133, 92, 214, 0.35);
+    transform: scale(1.08);
+}
+
+.cat-option-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+}

@@ -28,12 +28,13 @@ export const saveProject = async (userId, userEmail, title, sb3Blob) => {
         existingId = existingList[0].id;
     }
 
-    // Upload .sb3 file to Storage (use upsert: true to overwrite)
+    // Upload .sb3 file to Storage (use upsert: true to overwrite, cacheControl: '0' to avoid stale caching)
     const {error: uploadError} = await supabase.storage
         .from(BUCKET_NAME)
         .upload(filePath, sb3Blob, {
             contentType: 'application/octet-stream',
-            upsert: true
+            upsert: true,
+            cacheControl: '0'
         });
 
     if (uploadError) {
@@ -152,13 +153,42 @@ export const listAllStudentProjects = async teacherUserId => {
 
 /**
  * Load a project file from Supabase Storage.
+ * Uses a signed URL with cache: 'no-store' to ensure the latest version is loaded
+ * without hitting Cloudflare CDN or browser HTTP caches.
  * @param {string} filePath - The storage path (e.g. "user-id/filename.sb3")
  * @returns {Promise<ArrayBuffer>} The project file as an ArrayBuffer
  */
 export const loadProject = async filePath => {
+    // 1. Attempt to load via a fresh signed URL with cache: 'no-store'.
+    // Signed URLs contain a unique HMAC token, bypassing Cloudflare's static file cache.
+    try {
+        const {data: signedData, error: signedError} = await supabase.storage
+            .from(BUCKET_NAME)
+            .createSignedUrl(filePath, 60);
+
+        if (!signedError && signedData && signedData.signedUrl) {
+            const response = await fetch(signedData.signedUrl, {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
+            if (response.ok) {
+                return await response.arrayBuffer();
+            }
+        }
+    } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('Failed to load project via signed URL, falling back to download:', e);
+    }
+
+    // 2. Fallback to direct download with a cacheNonce timestamp
     const {data, error} = await supabase.storage
         .from(BUCKET_NAME)
-        .download(filePath);
+        .download(filePath, {
+            cacheNonce: Date.now().toString()
+        });
 
     if (error) {
         throw new Error(`Failed to download project: ${error.message}`);
@@ -171,7 +201,7 @@ export const loadProject = async filePath => {
  * Delete a project (both the Storage file and DB record).
  * @param {string} projectId - The project's UUID in the projects table
  * @param {string} filePath - The storage path to delete
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves when deletion completes
  */
 export const deleteProject = async (projectId, filePath) => {
     // Delete file from Storage

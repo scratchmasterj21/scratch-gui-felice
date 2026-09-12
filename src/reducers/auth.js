@@ -2,9 +2,10 @@ const LOGIN_START = 'scratch-gui/auth/LOGIN_START';
 const LOGIN_SUCCESS = 'scratch-gui/auth/LOGIN_SUCCESS';
 const LOGIN_FAILURE = 'scratch-gui/auth/LOGIN_FAILURE';
 const LOGOUT = 'scratch-gui/auth/LOGOUT';
+const SET_AVATAR = 'scratch-gui/auth/SET_AVATAR';
 
 const authInitialState = {
-    user: null,         // { id, username, email }
+    user: null, // { id, username, email, avatar }
     isLoggingIn: false,
     loginError: null
 };
@@ -35,6 +36,12 @@ const reducer = function (state, action) {
             isLoggingIn: false,
             loginError: null
         });
+    case SET_AVATAR:
+        return Object.assign({}, state, {
+            user: state.user ? Object.assign({}, state.user, {
+                avatar: action.avatar
+            }) : null
+        });
     default:
         return state;
     }
@@ -62,11 +69,19 @@ const logout = function () {
     return {type: LOGOUT};
 };
 
+const setAvatar = function (avatar) {
+    return {
+        type: SET_AVATAR,
+        avatar: avatar
+    };
+};
+
 export {
     reducer as default,
     authInitialState,
     loginStart,
     loginSuccess,
     loginFailure,
-    logout
+    logout,
+    setAvatar
 };

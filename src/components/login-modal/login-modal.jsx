@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import bindAll from 'lodash.bindall';
 import {connect} from 'react-redux';
 
-import {supabase, usernameToEmail, emailToUsername} from '../../lib/supabase';
+import {supabase, usernameToEmail, emailToUsername, getSavedAvatar} from '../../lib/supabase';
 import {loginStart, loginSuccess, loginFailure} from '../../reducers/auth';
 
 import styles from './login-modal.css';
@@ -56,10 +56,12 @@ class LoginModal extends React.Component {
                     this.props.onLoginFailure('Wrong username or password. Please try again.');
                     return;
                 }
+                const avatar = getSavedAvatar(data.user.id, data.user.user_metadata);
                 const user = {
                     id: data.user.id,
                     email: data.user.email,
-                    username: emailToUsername(data.user.email)
+                    username: emailToUsername(data.user.email),
+                    avatar: avatar
                 };
                 this.props.onLoginSuccess(user);
                 this.props.onClose();
