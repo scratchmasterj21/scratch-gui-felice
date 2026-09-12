@@ -9,6 +9,7 @@ import PaintEditorWrapper from './paint-editor-wrapper.jsx';
 import {connect} from 'react-redux';
 import {handleFileUpload, costumeUpload} from '../lib/file-uploader.js';
 import errorBoundaryHOC from '../lib/error-boundary-hoc.jsx';
+import {confirmDestructiveAction} from '../lib/confirm-dialog';
 import DragConstants from '../lib/drag-constants';
 import {emptyCostume} from '../lib/empty-assets';
 import sharedMessages from '../lib/shared-messages';
@@ -38,6 +39,21 @@ import costumeLibraryContent from '../lib/libraries/costumes.json';
 import backdropLibraryContent from '../lib/libraries/backdrops.json';
 
 let messages = defineMessages({
+    deleteCostumeTitle: {
+        defaultMessage: 'Delete costume?',
+        description: 'Title of the dialog asking to confirm deleting a costume',
+        id: 'gui.costumeTab.deleteCostumeTitle'
+    },
+    deleteCostumeText: {
+        defaultMessage: 'Are you sure you want to delete this costume?',
+        description: 'Body of the dialog asking to confirm deleting a costume',
+        id: 'gui.costumeTab.deleteCostumeText'
+    },
+    deleteCostumeConfirm: {
+        defaultMessage: 'Yes, delete it!',
+        description: 'Confirm button for deleting a costume',
+        id: 'gui.costumeTab.deleteCostumeConfirm'
+    },
     addLibraryBackdropMsg: {
         defaultMessage: 'Choose a Backdrop',
         description: 'Button to add a backdrop in the editor tab',
@@ -134,10 +150,17 @@ class CostumeTab extends React.Component {
         this.setState({selectedCostumeIndex: costumeIndex});
     }
     handleDeleteCostume (costumeIndex) {
-        const restoreCostumeFun = this.props.vm.deleteCostume(costumeIndex);
-        this.props.dispatchUpdateRestore({
-            restoreFun: restoreCostumeFun,
-            deletedItem: 'Costume'
+        return confirmDestructiveAction({
+            title: this.props.intl.formatMessage(messages.deleteCostumeTitle),
+            text: this.props.intl.formatMessage(messages.deleteCostumeText),
+            confirmButtonText: this.props.intl.formatMessage(messages.deleteCostumeConfirm)
+        }).then(confirmed => {
+            if (!confirmed) return;
+            const restoreCostumeFun = this.props.vm.deleteCostume(costumeIndex);
+            this.props.dispatchUpdateRestore({
+                restoreFun: restoreCostumeFun,
+                deletedItem: 'Costume'
+            });
         });
     }
     handleDuplicateCostume (costumeIndex) {

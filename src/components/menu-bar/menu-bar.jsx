@@ -44,7 +44,7 @@ import languageIcon from '../language-selector/language-icon.svg';
 import {projectTitleInitialState} from '../../reducers/project-title';
 
 
-import {openTipsLibrary} from '../../reducers/modals';
+import {openTipsLibrary, openRestorePoints} from '../../reducers/modals';
 import {setPlayer} from '../../reducers/mode';
 import {
     isTimeTravel220022BC,
@@ -712,6 +712,13 @@ class MenuBar extends React.Component {
                                                 />
                                             </MenuItem>
                                         )}</SB3Downloader>
+                                        <MenuItem onClick={this.props.onOpenRestorePoints}>
+                                            <FormattedMessage
+                                                defaultMessage="Restore points"
+                                                description="Menu bar item opening automatic project backups"
+                                                id="gui.menuBar.restorePoints"
+                                            />
+                                        </MenuItem>
                                     </MenuSection>
                                     {/* <MenuSection>
 
@@ -1137,6 +1144,7 @@ MenuBar.propTypes = {
     onLogOut: PropTypes.func,
     onOpenRegistration: PropTypes.func,
     onOpenTipLibrary: PropTypes.func,
+    onOpenRestorePoints: PropTypes.func,
     onProjectTelemetryEvent: PropTypes.func,
     onRequestCloseAbout: PropTypes.func,
     onRequestCloseAccount: PropTypes.func,
@@ -1220,6 +1228,7 @@ const getProjectFilename = (curTitle, defaultTitle) => {
 const mapDispatchToProps = dispatch => ({
     autoUpdateProject: () => dispatch(autoUpdateProject()),
     onOpenTipLibrary: () => dispatch(openTipsLibrary()),
+    onOpenRestorePoints: () => dispatch(openRestorePoints()),
     onClickAccount: () => dispatch(openAccountMenu()),
     onRequestCloseAccount: () => dispatch(closeAccountMenu()),
     onClickFile: () => dispatch(openFileMenu()),

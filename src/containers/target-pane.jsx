@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {connect} from 'react-redux';
 import {intlShape, injectIntl} from 'react-intl';
-import Swal from 'sweetalert2';
+import {confirmDestructiveAction} from '../lib/confirm-dialog';
 
 import {
     openSpriteLibrary,
@@ -79,25 +79,19 @@ class TargetPane extends React.Component {
         this.props.vm.postSpriteInfo({y});
     }
     handleDeleteSprite (id) {
-        Swal.fire({
-            heightAuto: false,
+        return confirmDestructiveAction({
             title: 'Delete sprite?',
             text: 'Are you sure you want to delete this sprite?',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
             confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const restoreSprite = this.props.vm.deleteSprite(id);
-                const restoreFun = () => restoreSprite().then(this.handleActivateBlocksTab);
+        }).then(confirmed => {
+            if (!confirmed) return;
+            const restoreSprite = this.props.vm.deleteSprite(id);
+            const restoreFun = () => restoreSprite().then(this.handleActivateBlocksTab);
 
-                this.props.dispatchUpdateRestore({
-                    restoreFun: restoreFun,
-                    deletedItem: 'Sprite'
-                });
-            }
+            this.props.dispatchUpdateRestore({
+                restoreFun: restoreFun,
+                deletedItem: 'Sprite'
+            });
         });
     }
     handleDuplicateSprite (id) {

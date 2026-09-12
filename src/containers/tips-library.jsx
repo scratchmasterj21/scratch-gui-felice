@@ -9,6 +9,7 @@ import tutorialTags from '../lib/libraries/tutorial-tags';
 import analytics from '../lib/analytics';
 import {notScratchDesktop} from '../lib/isScratchDesktop';
 import log from '../lib/log';
+import {CHOICE_CANCEL, CHOICE_CONFIRM, askChoice} from '../lib/confirm-dialog';
 import {
     SELECT_ACTIONS,
     getStarterLoadTransition,
@@ -43,11 +44,26 @@ const messages = defineMessages({
         description: 'Heading for the help/tutorials library',
         id: 'gui.tipsLibrary.tutorials'
     },
-    starterReplaceConfirm: {
-        defaultMessage: 'Start this tutorial with a fresh starter project? This replaces what you have open. ' +
-            'Choose Cancel to keep your project and just show the tutorial steps.',
-        description: 'Asked when opening a tutorial that comes with a starter project, while work is already open',
-        id: 'gui.tipsLibrary.starterReplaceConfirm'
+    starterReplaceTitle: {
+        defaultMessage: 'Start this tutorial fresh?',
+        description: 'Title asked when opening a tutorial that comes with a starter project',
+        id: 'gui.tipsLibrary.starterReplaceTitle'
+    },
+    starterReplaceText: {
+        defaultMessage: 'You can start from the tutorial\'s project, or keep what you have open and ' +
+            'just follow the steps.',
+        description: 'Body asked when opening a tutorial that comes with a starter project',
+        id: 'gui.tipsLibrary.starterReplaceText'
+    },
+    starterReplaceConfirmButton: {
+        defaultMessage: 'Start fresh',
+        description: 'Button that replaces the project with the tutorial starter project',
+        id: 'gui.tipsLibrary.starterReplaceConfirmButton'
+    },
+    starterReplaceCancelButton: {
+        defaultMessage: 'Keep my project',
+        description: 'Button that keeps the open project and only shows the tutorial steps',
+        id: 'gui.tipsLibrary.starterReplaceCancelButton'
     },
     starterLoadError: {
         defaultMessage: 'This tutorial\'s starter project could not be loaded. Please try again.',
@@ -106,7 +122,7 @@ class TipsLibrary extends React.PureComponent {
             label: item.id
         });
 
-        let selectAction = getTutorialSelectAction(item, {
+        const selectAction = getTutorialSelectAction(item, {
             activeDeckId: this.props.activeDeckId,
             projectChanged: this.props.projectChanged,
             projectId: this.props.projectId,
@@ -114,12 +130,21 @@ class TipsLibrary extends React.PureComponent {
         });
 
         if (selectAction === SELECT_ACTIONS.ASK) {
-            // Cancel is the safe answer, so a student who just wants their card back keeps
-            // the project they are working on.
-            const replaceAllowed = confirm( // eslint-disable-line no-alert
-                this.props.intl.formatMessage(messages.starterReplaceConfirm)
-            );
-            selectAction = replaceAllowed ? SELECT_ACTIONS.LOAD_STARTER : SELECT_ACTIONS.ACTIVATE;
+            /*
+                Both answers are reasonable here, so each button says what it does rather
+                than leaving the student to read "Cancel" as "keep my work". Waving the
+                dialog away does nothing at all.
+            */
+            return askChoice({
+                title: this.props.intl.formatMessage(messages.starterReplaceTitle),
+                text: this.props.intl.formatMessage(messages.starterReplaceText),
+                confirmButtonText: this.props.intl.formatMessage(messages.starterReplaceConfirmButton),
+                cancelButtonText: this.props.intl.formatMessage(messages.starterReplaceCancelButton)
+            }).then(choice => {
+                if (choice === CHOICE_CONFIRM) return this.loadStarterAndActivate(item);
+                if (choice === CHOICE_CANCEL) this.props.onActivateDeck(item.id);
+                return null;
+            });
         }
 
         if (selectAction === SELECT_ACTIONS.LOAD_STARTER) {

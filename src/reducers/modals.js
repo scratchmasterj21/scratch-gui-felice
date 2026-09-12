@@ -11,6 +11,7 @@ const MODAL_SPRITE_LIBRARY = 'spriteLibrary';
 const MODAL_SOUND_RECORDER = 'soundRecorder';
 const MODAL_CONNECTION = 'connectionModal';
 const MODAL_TIPS_LIBRARY = 'tipsLibrary';
+const MODAL_RESTORE_POINTS = 'restorePoints';
 
 const initialState = {
     [MODAL_BACKDROP_LIBRARY]: false,
@@ -22,7 +23,8 @@ const initialState = {
     [MODAL_SPRITE_LIBRARY]: false,
     [MODAL_SOUND_RECORDER]: false,
     [MODAL_CONNECTION]: false,
-    [MODAL_TIPS_LIBRARY]: false
+    [MODAL_TIPS_LIBRARY]: false,
+    [MODAL_RESTORE_POINTS]: false
 };
 
 const reducer = function (state, action) {
@@ -106,6 +108,14 @@ const closeSoundLibrary = function () {
 const closeSoundRecorder = function () {
     return closeModal(MODAL_SOUND_RECORDER);
 };
+const openRestorePoints = function () {
+    return openModal(MODAL_RESTORE_POINTS);
+};
+
+const closeRestorePoints = function () {
+    return closeModal(MODAL_RESTORE_POINTS);
+};
+
 const closeTipsLibrary = function () {
     return closeModal(MODAL_TIPS_LIBRARY);
 };
@@ -124,6 +134,7 @@ export {
     openSoundRecorder,
     openTelemetryModal,
     openTipsLibrary,
+    openRestorePoints,
     openConnectionModal,
     closeBackdropLibrary,
     closeCostumeLibrary,
@@ -134,5 +145,6 @@ export {
     closeSoundRecorder,
     closeTelemetryModal,
     closeTipsLibrary,
+    closeRestorePoints,
     closeConnectionModal
 };
