@@ -6,7 +6,12 @@ module.exports = {
         browser: true
     },
     globals: {
-        process: true
+        process: true,
+        // Provided at runtime by Google's script tags (Identity Services, Drive API).
+        // ESLint cannot see them declared anywhere, so without this it reports every
+        // use as an undefined variable.
+        gapi: 'readonly',
+        DriveApp: 'readonly'
     },
     rules: {
         // BEGIN: these caused trouble after upgrading eslint-plugin-react from 7.24.0 to 7.33.2
