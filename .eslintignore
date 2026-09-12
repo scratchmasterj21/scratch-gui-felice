@@ -3,3 +3,11 @@ build/*
 dist/*
 test/*
 src/examples/*
+
+# Vendored Scratch extensions, copied in by scripts/patch-scratch-vm.js. They are third
+# party sources we do not edit, and linting them buried the project's own errors under
+# tens of thousands of findings, which left `npm run test:lint` permanently red.
+ml2scratch/*
+posenet2scratch/*
+faceSensing/*
+multitouch/*

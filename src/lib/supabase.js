@@ -11,7 +11,26 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // e.g. username "john" becomes "john@felice.local"
 export const EMAIL_DOMAIN = 'felice.local';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/*
+ * The client is built on first use rather than at import time.
+ *
+ * Constructing it touches browser globals (fetch/Headers), so building it at import made
+ * this module - and every module that imports it, transitively including the menu bar -
+ * impossible to load outside a real browser. That broke unit tests that only wanted to
+ * render a component, and forced mocks on tests that merely imported something nearby.
+ */
+let client = null;
+
+/**
+ * The shared Supabase client, created on first call.
+ * @returns {object} the Supabase client
+ */
+export const getSupabase = () => {
+    if (!client) {
+        client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+    return client;
+};
 
 /**
  * Convert a plain username to a synthetic email.
@@ -45,7 +64,7 @@ export const updateUserAvatar = async function (userId, avatar) {
         }
     }
     try {
-        await supabase.auth.updateUser({
+        await getSupabase().auth.updateUser({
             data: {avatar: avatar}
         });
     } catch (err) {
@@ -74,5 +93,3 @@ export const getSavedAvatar = function (userId, userMetadata) {
     }
     return 'cat';
 };
-
-export default supabase;

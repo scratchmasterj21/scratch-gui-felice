@@ -14,7 +14,7 @@ import LoginModal from '../login-modal/login-modal.jsx';
 import MyProjectsModal from '../my-projects-modal/my-projects-modal.jsx';
 import AvatarPicker from '../avatar-picker/avatar-picker.jsx';
 import {saveProject} from '../../lib/cloud-project-service';
-import {supabase, emailToUsername, getSavedAvatar, updateUserAvatar} from '../../lib/supabase';
+import {getSupabase, emailToUsername, getSavedAvatar, updateUserAvatar} from '../../lib/supabase';
 import {loginSuccess, logout as logoutAction, setAvatar} from '../../reducers/auth';
 import {setProjectTitle} from '../../reducers/project-title';
 import {setProjectUnchanged} from '../../reducers/project-changed';
@@ -229,7 +229,7 @@ class MenuBar extends React.Component {
     componentDidMount () {
         document.addEventListener('keydown', this.handleKeyPress);
         // Check for existing Supabase session on mount
-        supabase.auth.getSession().then(({data: {session}}) => {
+        getSupabase().auth.getSession().then(({data: {session}}) => {
             if (session && session.user) {
                 const avatar = getSavedAvatar(session.user.id, session.user.user_metadata);
                 this.props.onSupabaseLoginSuccess({
@@ -343,7 +343,7 @@ class MenuBar extends React.Component {
             });
     }
     handleLogout () {
-        supabase.auth.signOut().then(() => {
+        getSupabase().auth.signOut().then(() => {
             this.props.onSupabaseLogout();
         });
     }

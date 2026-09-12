@@ -136,8 +136,15 @@ class TipsLibrary extends React.PureComponent {
     render () {
         const decksLibraryThumbnailData = Object.keys(decksLibraryContent)
             .filter(id => {
-                if (notScratchDesktop()) return true; // Do not filter anything in online editor
                 const deck = decksLibraryContent[id];
+                /*
+                    Tutorials with a `requiredProjectId` need their starter project, which
+                    lives in our storage behind a signed-in session. Showing them to a
+                    signed-out student would only ever produce a load error, so hide them
+                    until they log in.
+                */
+                if (deck.requiredProjectId && !this.props.isLoggedIn) return false;
+                if (notScratchDesktop()) return true; // Do not filter anything else in the online editor
                 // Scratch Desktop doesn't want tutorials with `requiredProjectId`
                 if (Object.prototype.hasOwnProperty.call(deck, 'requiredProjectId')) return false;
                 // Scratch Desktop should not load tutorials that are _only_ videos
@@ -175,6 +182,7 @@ class TipsLibrary extends React.PureComponent {
 TipsLibrary.propTypes = {
     activeDeckId: PropTypes.string,
     intl: intlShape.isRequired,
+    isLoggedIn: PropTypes.bool,
     loadingState: PropTypes.oneOf(LoadingStates),
     onActivateDeck: PropTypes.func.isRequired,
     onLoadingFinished: PropTypes.func.isRequired,
@@ -190,6 +198,7 @@ TipsLibrary.propTypes = {
 
 const mapStateToProps = state => ({
     activeDeckId: state.scratchGui.cards.activeDeckId,
+    isLoggedIn: Boolean(state.scratchGui.auth && state.scratchGui.auth.user),
     loadingState: state.scratchGui.projectState.loadingState,
     projectChanged: state.scratchGui.projectChanged,
     visible: state.scratchGui.modals.tipsLibrary,

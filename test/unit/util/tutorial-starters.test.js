@@ -16,6 +16,7 @@ import {
     loadTutorialStarter
 } from '../../../src/lib/tutorial-starters';
 import {LoadingState, onLoadedProject} from '../../../src/reducers/project-state';
+import decks from '../../../src/lib/libraries/decks/index.jsx';
 
 // These ids come from `requiredProjectId` in src/lib/libraries/decks/index.jsx and are the
 // filenames scripts/fetch-tutorial-starters.js writes. If this changes, the files already
@@ -171,4 +172,17 @@ describe('getTutorialSelectAction', () => {
         expect(getTutorialSelectAction(plainItem)).toBe(SELECT_ACTIONS.ACTIVATE);
         expect(getTutorialSelectAction(starterItem)).toBe(SELECT_ACTIONS.LOAD_STARTER);
     });
+});
+
+test('the deck library declares exactly the starters we package and gate on login', () => {
+    // scripts/fetch-tutorial-starters.js packages this list, and tips-library hides these
+    // decks from signed-out students. A third one appearing here needs both updated.
+    const withStarters = Object.keys(decks)
+        .filter(id => decks[id].requiredProjectId)
+        .map(id => [id, decks[id].requiredProjectId])
+        .sort();
+    expect(withStarters).toEqual([
+        ['cartoon-network', ANIMATE_AN_ADVENTURE_GAME],
+        ['code-cartoon', CODE_A_CARTOON]
+    ]);
 });

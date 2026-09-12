@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import bindAll from 'lodash.bindall';
 import {connect} from 'react-redux';
 
-import {supabase, usernameToEmail, emailToUsername, getSavedAvatar} from '../../lib/supabase';
+import {getSupabase, usernameToEmail, emailToUsername, getSavedAvatar} from '../../lib/supabase';
 import {loginStart, loginSuccess, loginFailure} from '../../reducers/auth';
 
 import styles from './login-modal.css';
@@ -47,7 +47,7 @@ class LoginModal extends React.Component {
 
         const email = usernameToEmail(username);
 
-        supabase.auth.signInWithPassword({
+        getSupabase().auth.signInWithPassword({
             email: email,
             password: password
         })

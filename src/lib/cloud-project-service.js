@@ -1,4 +1,4 @@
-import {supabase} from './supabase';
+import {getSupabase} from './supabase';
 
 const BUCKET_NAME = 'scratch-projects';
 
@@ -18,7 +18,7 @@ export const saveProject = async (userId, userEmail, title, sb3Blob) => {
 
     // Check if a project with the same title exists for this user
     let existingId = null;
-    const {data: existingList} = await supabase
+    const {data: existingList} = await getSupabase()
         .from('projects')
         .select('id, file_path')
         .eq('user_id', userId)
@@ -29,7 +29,7 @@ export const saveProject = async (userId, userEmail, title, sb3Blob) => {
     }
 
     // Upload .sb3 file to Storage (use upsert: true to overwrite, cacheControl: '0' to avoid stale caching)
-    const {error: uploadError} = await supabase.storage
+    const {error: uploadError} = await getSupabase().storage
         .from(BUCKET_NAME)
         .upload(filePath, sb3Blob, {
             contentType: 'application/octet-stream',
@@ -53,7 +53,7 @@ export const saveProject = async (userId, userEmail, title, sb3Blob) => {
     let result;
     if (existingId) {
         // Update existing record
-        const {data, error} = await supabase
+        const {data, error} = await getSupabase()
             .from('projects')
             .update(projectData)
             .eq('id', existingId)
@@ -63,7 +63,7 @@ export const saveProject = async (userId, userEmail, title, sb3Blob) => {
         result = data;
     } else {
         // Insert new record
-        const {data, error} = await supabase
+        const {data, error} = await getSupabase()
             .from('projects')
             .insert(projectData)
             .select()
@@ -81,7 +81,7 @@ export const saveProject = async (userId, userEmail, title, sb3Blob) => {
  * @returns {Promise<Array>} Array of project metadata objects
  */
 export const listProjects = async userId => {
-    const {data, error} = await supabase
+    const {data, error} = await getSupabase()
         .from('projects')
         .select('*')
         .eq('user_id', userId)
@@ -100,7 +100,7 @@ export const listProjects = async userId => {
  * @param {boolean} isTemplate - Whether it should be a template
  */
 export const shareProjectTemplate = async (projectId, isTemplate) => {
-    const {data, error} = await supabase
+    const {data, error} = await getSupabase()
         .from('projects')
         .update({is_template: isTemplate})
         .eq('id', projectId)
@@ -119,7 +119,7 @@ export const shareProjectTemplate = async (projectId, isTemplate) => {
  * @returns {Promise<Array>} Array of shared template projects
  */
 export const listSharedTemplates = async () => {
-    const {data, error} = await supabase
+    const {data, error} = await getSupabase()
         .from('projects')
         .select('*')
         .eq('is_template', true)
@@ -138,7 +138,7 @@ export const listSharedTemplates = async () => {
  * @returns {Promise<Array>} Array of student projects
  */
 export const listAllStudentProjects = async teacherUserId => {
-    const {data, error} = await supabase
+    const {data, error} = await getSupabase()
         .from('projects')
         .select('*')
         .neq('user_id', teacherUserId)
@@ -162,7 +162,7 @@ export const loadProject = async filePath => {
     // 1. Attempt to load via a fresh signed URL with cache: 'no-store'.
     // Signed URLs contain a unique HMAC token, bypassing Cloudflare's static file cache.
     try {
-        const {data: signedData, error: signedError} = await supabase.storage
+        const {data: signedData, error: signedError} = await getSupabase().storage
             .from(BUCKET_NAME)
             .createSignedUrl(filePath, 60);
 
@@ -184,7 +184,7 @@ export const loadProject = async filePath => {
     }
 
     // 2. Fallback to direct download with a cacheNonce timestamp
-    const {data, error} = await supabase.storage
+    const {data, error} = await getSupabase().storage
         .from(BUCKET_NAME)
         .download(filePath, {
             cacheNonce: Date.now().toString()
@@ -205,7 +205,7 @@ export const loadProject = async filePath => {
  */
 export const deleteProject = async (projectId, filePath) => {
     // Delete file from Storage
-    const {error: storageError} = await supabase.storage
+    const {error: storageError} = await getSupabase().storage
         .from(BUCKET_NAME)
         .remove([filePath]);
 
@@ -215,7 +215,7 @@ export const deleteProject = async (projectId, filePath) => {
     }
 
     // Delete record from DB
-    const {error: dbError} = await supabase
+    const {error: dbError} = await getSupabase()
         .from('projects')
         .delete()
         .eq('id', projectId);
