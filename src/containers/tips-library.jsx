@@ -8,24 +8,51 @@ import tutorialTags from '../lib/libraries/tutorial-tags';
 
 import analytics from '../lib/analytics';
 import {notScratchDesktop} from '../lib/isScratchDesktop';
+import log from '../lib/log';
+import {
+    SELECT_ACTIONS,
+    getStarterLoadTransition,
+    getTutorialSelectAction,
+    loadTutorialStarter
+} from '../lib/tutorial-starters';
 
 import LibraryComponent from '../components/library/library.jsx';
 
 import {connect} from 'react-redux';
 
 import {
-    closeTipsLibrary
+    closeLoadingProject,
+    closeTipsLibrary,
+    openLoadingProject
 } from '../reducers/modals';
 
 import {
-    activateDeck
+    activateDeck,
+    viewCards
 } from '../reducers/cards';
+
+import {
+    LoadingStates,
+    onLoadedProject
+} from '../reducers/project-state';
+
 
 const messages = defineMessages({
     tipsLibraryTitle: {
         defaultMessage: 'Choose a Tutorial',
         description: 'Heading for the help/tutorials library',
         id: 'gui.tipsLibrary.tutorials'
+    },
+    starterReplaceConfirm: {
+        defaultMessage: 'Start this tutorial with a fresh starter project? This replaces what you have open. ' +
+            'Choose Cancel to keep your project and just show the tutorial steps.',
+        description: 'Asked when opening a tutorial that comes with a starter project, while work is already open',
+        id: 'gui.tipsLibrary.starterReplaceConfirm'
+    },
+    starterLoadError: {
+        defaultMessage: 'This tutorial\'s starter project could not be loaded. Please try again.',
+        description: 'Error shown when a tutorial that needs a starter project cannot fetch it',
+        id: 'gui.tipsLibrary.starterLoadError'
     }
 });
 
@@ -36,6 +63,42 @@ class TipsLibrary extends React.PureComponent {
             'handleItemSelect'
         ]);
     }
+    /*
+        A few tutorials only make sense on top of a specific half-built project, declared as
+        `requiredProjectId` on the deck. Upstream opens scratch.mit.edu in a new tab for
+        these, which is a dead link anywhere else, so the starter is fetched from our own
+        storage and loaded in place instead.
+    */
+    loadStarterAndActivate (item) {
+        // Loading a starter is a file upload as far as project state is concerned, and the
+        // machine only accepts that from a settled state. If the editor is already mid-load,
+        // do nothing rather than dispatch an undefined action.
+        const transition = getStarterLoadTransition(this.props.loadingState);
+        if (!transition) return;
+
+        this.props.onRequestClose();
+        this.props.onLoadingStarted(transition.startAction);
+
+        let loadingSuccess = false;
+        return loadTutorialStarter(item.requiredProjectId)
+            .then(projectData => this.props.vm.loadProject(projectData))
+            .then(() => {
+                loadingSuccess = true;
+            })
+            .catch(error => {
+                log.warn(error);
+                alert(this.props.intl.formatMessage(messages.starterLoadError)); // eslint-disable-line no-alert
+            })
+            .then(() => {
+                // Always finish from the state the load was started in, never from the
+                // current props: the machine has to be walked back out either way, or the
+                // editor stays stuck behind the loading screen.
+                this.props.onLoadingFinished(transition.finishState, loadingSuccess);
+                if (loadingSuccess) {
+                    this.props.onActivateDeck(item.id);
+                }
+            });
+    }
     handleItemSelect (item) {
         analytics.event({
             category: 'library',
@@ -43,19 +106,29 @@ class TipsLibrary extends React.PureComponent {
             label: item.id
         });
 
-        /*
-            Support tutorials that require specific starter projects.
-            If a tutorial declares "requiredProjectId", check that the URL contains
-            it. If it is not, open a new page with this tutorial and project id.
+        let selectAction = getTutorialSelectAction(item, {
+            activeDeckId: this.props.activeDeckId,
+            projectChanged: this.props.projectChanged,
+            projectId: this.props.projectId,
+            projectTitle: this.props.projectTitle
+        });
 
-            TODO remove this at first opportunity. If this is still here after HOC2018,
-                 blame Eric R. Andrew is also on record saying "this is temporary".
-            UPDATE well now Paul is wrapped into this as well. Sigh...
-                eventually we will find a solution that doesn't involve loading a whole project
-        */
-        if (item.requiredProjectId && (item.requiredProjectId !== this.props.projectId)) {
-            const urlParams = `/projects/${item.requiredProjectId}/editor?tutorial=${item.urlId}`;
-            return window.open(window.location.origin + urlParams, '_blank');
+        if (selectAction === SELECT_ACTIONS.ASK) {
+            // Cancel is the safe answer, so a student who just wants their card back keeps
+            // the project they are working on.
+            const replaceAllowed = confirm( // eslint-disable-line no-alert
+                this.props.intl.formatMessage(messages.starterReplaceConfirm)
+            );
+            selectAction = replaceAllowed ? SELECT_ACTIONS.LOAD_STARTER : SELECT_ACTIONS.ACTIVATE;
+        }
+
+        if (selectAction === SELECT_ACTIONS.LOAD_STARTER) {
+            return this.loadStarterAndActivate(item);
+        }
+
+        if (selectAction === SELECT_ACTIONS.VIEW) {
+            this.props.onRequestClose();
+            return this.props.onViewCards();
         }
 
         this.props.onActivateDeck(item.id);
@@ -100,21 +173,44 @@ class TipsLibrary extends React.PureComponent {
 }
 
 TipsLibrary.propTypes = {
+    activeDeckId: PropTypes.string,
     intl: intlShape.isRequired,
+    loadingState: PropTypes.oneOf(LoadingStates),
     onActivateDeck: PropTypes.func.isRequired,
-    onRequestClose: PropTypes.func,
+    onLoadingFinished: PropTypes.func.isRequired,
+    onLoadingStarted: PropTypes.func.isRequired,
+    onRequestClose: PropTypes.func.isRequired,
+    onViewCards: PropTypes.func.isRequired,
+    projectChanged: PropTypes.bool,
     projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    visible: PropTypes.bool
+    projectTitle: PropTypes.string,
+    visible: PropTypes.bool,
+    vm: PropTypes.shape({loadProject: PropTypes.func})
 };
 
 const mapStateToProps = state => ({
+    activeDeckId: state.scratchGui.cards.activeDeckId,
+    loadingState: state.scratchGui.projectState.loadingState,
+    projectChanged: state.scratchGui.projectChanged,
     visible: state.scratchGui.modals.tipsLibrary,
-    projectId: state.scratchGui.projectState.projectId
+    projectId: state.scratchGui.projectState.projectId,
+    projectTitle: state.scratchGui.projectTitle,
+    vm: state.scratchGui.vm
 });
 
 const mapDispatchToProps = dispatch => ({
     onActivateDeck: id => dispatch(activateDeck(id)),
-    onRequestClose: () => dispatch(closeTipsLibrary())
+    onLoadingFinished: (loadingState, success) => {
+        const action = onLoadedProject(loadingState, false, success);
+        if (action) dispatch(action);
+        dispatch(closeLoadingProject());
+    },
+    onLoadingStarted: startAction => {
+        dispatch(startAction);
+        dispatch(openLoadingProject());
+    },
+    onRequestClose: () => dispatch(closeTipsLibrary()),
+    onViewCards: () => dispatch(viewCards())
 });
 
 export default injectIntl(connect(
