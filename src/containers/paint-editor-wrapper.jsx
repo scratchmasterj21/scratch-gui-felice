@@ -4,98 +4,84 @@ import bindAll from 'lodash.bindall';
 import VM from 'scratch-vm';
 import PaintEditor from 'scratch-paint';
 import {inlineSvgFonts} from 'scratch-svg-renderer';
-import paper from '@scratch/paper';
 
 import {connect} from 'react-redux';
+
+import OnionSkinToggle from '../components/onion-skin-toggle/onion-skin-toggle.jsx';
+import {getOnionFrames} from '../lib/onion-skin-frames';
+import {
+    COSTUME_IMPORT_DELAY,
+    PROJECT_RESTORE_DELAY,
+    getOnionRebuildDelay,
+    onionControlsChanged
+} from '../lib/onion-skin-update';
+import {setOnionSkinEnabled, setOnionSkinSettings} from '../reducers/onion-skin';
+import {
+    clearOnionLayers,
+    getPaperCenter,
+    insertOnionLayer,
+    onOnionInvalidated,
+    patchPaperExports,
+    prepareOnionItem
+} from '../lib/onion-skin';
+
+import styles from './paint-editor-wrapper.css';
 
 class PaintEditorWrapper extends React.Component {
     constructor (props) {
         super(props);
-        this.state = {
-            onionSkinOn: false
-        };
-        this._onionLayer = null;
+        // Bumped whenever pending onion work becomes irrelevant. Async callbacks compare
+        // against it and drop out, so a costume switch or an unmount cannot leave a
+        // stale layer behind.
+        this._onionGeneration = 0;
+        this._onionTimeout = null;
+        this._unsubscribeInvalidated = null;
+        this._mounted = false;
         bindAll(this, [
             'handleUpdateImage',
             'handleUpdateName',
-            'toggleOnionSkin'
+            'handleOnionInvalidated',
+            'handleToggleOnionSkin',
+            'handleChangePreviousFrames',
+            'handleChangeNextFrames',
+            'handleChangeTinted',
+            'handleChangeLoop',
+            'updateOnionLayers'
         ]);
     }
-    shouldComponentUpdate (nextProps, nextState) {
+    componentDidMount () {
+        this._mounted = true;
+        // Idempotent, and flagged on paper's prototype rather than on this component, so
+        // reopening the costume tab cannot stack wrappers.
+        patchPaperExports();
+        this._unsubscribeInvalidated = onOnionInvalidated(this.handleOnionInvalidated);
+        if (this.props.onionFrames.length) {
+            this.scheduleOnionUpdate(COSTUME_IMPORT_DELAY);
+        }
+    }
+    shouldComponentUpdate (nextProps) {
         return this.props.imageId !== nextProps.imageId ||
             this.props.rtl !== nextProps.rtl ||
             this.props.name !== nextProps.name ||
-            this.state.onionSkinOn !== nextState.onionSkinOn;
+            this.props.onionSignature !== nextProps.onionSignature ||
+            // Toggling Loop in the middle of the costume list, or changing Before/After at
+            // either end, leaves the drawn frames identical. Without this the control
+            // itself never repaints and the click looks like it did nothing.
+            onionControlsChanged(this.props, nextProps);
     }
-    componentDidMount () {
-        // Monkey-patch Paper.js export functions to exclude our onion layer.
-        // This prevents the onion skin from being baked into saved costume data.
-        this._patchedExport = false;
-        this._patchExportFunctions();
-    }
-    _patchExportFunctions () {
-        if (this._patchedExport) return;
-        this._patchedExport = true;
-        const self = this;
-
-        // Patch exportSVG (used when saving vector costumes)
-        const originalExportSVG = paper.Project.prototype.exportSVG;
-        paper.Project.prototype.exportSVG = function (...args) {
-            let onionLayer = null;
-            if (self._onionLayer && self._onionLayer.index !== null) {
-                onionLayer = self._onionLayer;
-                onionLayer.remove();
-            }
-            const result = originalExportSVG.call(this, ...args);
-            if (onionLayer) {
-                self._reinsertOnionLayer(onionLayer);
-            }
-            return result;
-        };
-
-        // Patch exportJSON (used for undo snapshots)
-        const originalExportJSON = paper.Project.prototype.exportJSON;
-        paper.Project.prototype.exportJSON = function (...args) {
-            let onionLayer = null;
-            if (self._onionLayer && self._onionLayer.index !== null) {
-                onionLayer = self._onionLayer;
-                onionLayer.remove();
-            }
-            const result = originalExportJSON.call(this, ...args);
-            if (onionLayer) {
-                self._reinsertOnionLayer(onionLayer);
-            }
-            return result;
-        };
-
-        // Patch importJSON (used during undo/redo) to re-add onion layers
-        const originalImportJSON = paper.Project.prototype.importJSON;
-        paper.Project.prototype.importJSON = function (...args) {
-            const result = originalImportJSON.call(this, ...args);
-            if (self.state.onionSkinOn) {
-                setTimeout(() => self.updateOnionLayer(), 100);
-            }
-            return result;
-        };
-    }
-    _reinsertOnionLayer (layer) {
-        if (!paper.project) return;
-        paper.project.addLayer(layer);
-        const bgLayer = paper.project.layers.find(l => l.data && l.data.isBackgroundGuideLayer);
-        if (bgLayer) {
-            layer.insertAbove(bgLayer);
-        }
-    }
-    componentDidUpdate (prevProps, prevState) {
-        // Update onion layer when costume changes or toggle changes
-        if (prevProps.imageId !== this.props.imageId ||
-            prevState.onionSkinOn !== this.state.onionSkinOn) {
-            // Small delay to let scratch-paint finish importing the current costume
-            setTimeout(() => this.updateOnionLayer(), 200);
-        }
+    componentDidUpdate (prevProps) {
+        const delay = getOnionRebuildDelay(prevProps, this.props);
+        if (delay !== null) this.scheduleOnionUpdate(delay);
     }
     componentWillUnmount () {
-        this.removeOnionLayer();
+        this._mounted = false;
+        this.cancelPendingOnionWork();
+        if (this._unsubscribeInvalidated) {
+            this._unsubscribeInvalidated();
+            this._unsubscribeInvalidated = null;
+        }
+        // Sweeps by data flag, so anything orphaned by a race goes too.
+        clearOnionLayers();
     }
     handleUpdateName (name) {
         this.props.vm.renameCostume(this.props.selectedCostumeIndex, name);
@@ -116,189 +102,103 @@ class PaintEditorWrapper extends React.Component {
                 2 /* bitmapResolution */);
         }
     }
-    toggleOnionSkin () {
-        this.setState(state => ({onionSkinOn: !state.onionSkinOn}));
-    }
-    removeOnionLayer () {
-        if (this._onionLayer) {
-            this._onionLayer.remove();
-            this._onionLayer = null;
+    handleOnionInvalidated () {
+        if (this.props.onionFrames.length) {
+            this.scheduleOnionUpdate(PROJECT_RESTORE_DELAY);
         }
     }
-    updateOnionLayer () {
-        this.removeOnionLayer();
+    handleToggleOnionSkin () {
+        this.props.onSetOnionSkinEnabled(!this.props.onionEnabled);
+    }
+    handleChangePreviousFrames (event) {
+        this.props.onSetOnionSkinSettings({previous: Number(event.target.value)});
+    }
+    handleChangeNextFrames (event) {
+        this.props.onSetOnionSkinSettings({next: Number(event.target.value)});
+    }
+    handleChangeTinted (event) {
+        this.props.onSetOnionSkinSettings({tinted: event.target.checked});
+    }
+    handleChangeLoop (event) {
+        this.props.onSetOnionSkinSettings({loop: event.target.checked});
+    }
+    cancelPendingOnionWork () {
+        this._onionGeneration++;
+        if (this._onionTimeout) {
+            clearTimeout(this._onionTimeout);
+            this._onionTimeout = null;
+        }
+    }
+    scheduleOnionUpdate (delay) {
+        this.cancelPendingOnionWork();
+        // Drop the old frames now rather than after the delay, so a toggle responds at once
+        // instead of holding a stale ghost until the rebuild lands.
+        clearOnionLayers();
+        this._onionTimeout = setTimeout(this.updateOnionLayers, delay);
+    }
+    updateOnionLayers () {
+        this._onionTimeout = null;
+        clearOnionLayers();
 
-        if (!this.state.onionSkinOn) return;
-        if (!paper.project) return;
+        if (!this._mounted || !this.props.onionFrames.length) return;
 
-        const prevIndex = this.props.selectedCostumeIndex - 1;
-        if (prevIndex < 0) return;
+        const paperCenter = getPaperCenter();
+        if (!paperCenter) return;
 
         const sprite = this.props.vm.editingTarget && this.props.vm.editingTarget.sprite;
         if (!sprite) return;
-        const prevCostume = sprite.costumes[prevIndex];
-        if (!prevCostume) return;
 
-        const asset = this.props.vm.getCostume(prevIndex);
-        if (!asset) return;
+        const generation = this._onionGeneration;
 
-        // Find paper center from the background guide layer (same as Scratch Addons)
-        const bgLayer = paper.project.layers.find(l => l.data && l.data.isBackgroundGuideLayer);
-        if (!bgLayer || !bgLayer.children || !bgLayer.children.length) return;
-        const paperCenter = bgLayer.children[0].position;
+        for (const frame of this.props.onionFrames) {
+            const costume = sprite.costumes[frame.index];
+            if (!costume) continue;
+            const asset = this.props.vm.getCostume(frame.index);
+            if (!asset) continue;
 
-        // Save the currently active layer so we can restore it after
-        const originalActiveLayer = paper.project.activeLayer;
-
-        if (prevCostume.dataFormat === 'svg') {
-            this._makeVectorOnion(asset, prevCostume, paperCenter);
-        } else {
-            this._makeRasterOnion(asset, prevCostume, paperCenter);
-        }
-
-        // Restore original active layer
-        if (originalActiveLayer) originalActiveLayer.activate();
-    }
-    _makeVectorOnion (svgString, costume, paperCenter) {
-        const {rotationCenterX, rotationCenterY} = costume;
-
-        // Parse viewBox
-        const parser = new DOMParser();
-        const svgDom = parser.parseFromString(svgString, 'text/xml');
-        const viewBoxAttr = svgDom.documentElement.getAttribute('viewBox');
-        let viewBox = null;
-        if (viewBoxAttr) {
-            viewBox = viewBoxAttr.split(/\s+/).map(Number);
-        }
-
-        paper.project.importSVG(svgString, {
-            expandShapes: true,
-            insert: false,
-            onLoad: (root) => {
-                if (!root || !paper.project) return;
-
-                // Create onion layer
-                const layer = new paper.Layer();
-                layer.locked = true;
-                layer.guide = true;
-                layer.opacity = 0.3;
-                layer.data.isOnionLayer = true;
-                this._onionLayer = layer;
-
-                // Apply the same transforms as scratch-paint's initializeSvg:
-                // 1. Scale by 2
-                const recursePaperItem = (item, cb) => {
-                    if (item.children) {
-                        for (const child of item.children) {
-                            recursePaperItem(child, cb);
-                        }
-                    }
-                    cb(item);
-                };
-                recursePaperItem(root, (i) => {
-                    if (i.className === 'PathItem') {
-                        i.clockwise = true;
-                    }
-                    if (i.className !== 'PointText' && !i.children) {
-                        if (i.strokeWidth) {
-                            i.strokeWidth = i.strokeWidth * 2;
-                        }
-                    }
-                    i.locked = true;
-                    i.guide = true;
-                });
-                root.scale(2, new paper.Point(0, 0));
-
-                // 2. Translate using rotation center (same logic as scratch-paint)
-                if (typeof rotationCenterX !== 'undefined' && typeof rotationCenterY !== 'undefined') {
-                    let rotationPoint = new paper.Point(rotationCenterX, rotationCenterY);
-                    if (viewBox && viewBox.length >= 2 && !isNaN(viewBox[0]) && !isNaN(viewBox[1])) {
-                        rotationPoint = rotationPoint.subtract(viewBox[0], viewBox[1]);
-                    }
-                    root.translate(paperCenter.subtract(rotationPoint.multiply(2)));
-                } else {
-                    root.translate(paperCenter.subtract(root.bounds.width, root.bounds.height));
+            prepareOnionItem({asset, costume, paperCenter, tint: frame.tint}, item => {
+                if (!item) return;
+                if (!this._mounted || generation !== this._onionGeneration) {
+                    // The costume changed, or the editor closed, while this was loading.
+                    item.remove();
+                    return;
                 }
-
-                layer.addChild(root);
-
-                // Position onion layer behind the drawing layer but above background
-                const bgLayer2 = paper.project.layers.find(l => l.data && l.data.isBackgroundGuideLayer);
-                if (bgLayer2) {
-                    layer.insertAbove(bgLayer2);
-                }
-            }
-        });
-    }
-    _makeRasterOnion (dataURI, costume, paperCenter) {
-        let {rotationCenterX, rotationCenterY} = costume;
-
-        const image = new Image();
-        image.onload = () => {
-            if (!paper.project) return;
-
-            const width = Math.min(paperCenter.x * 2, image.width);
-            const height = Math.min(paperCenter.y * 2, image.height);
-
-            if (typeof rotationCenterX === 'undefined') {
-                rotationCenterX = width / 2;
-            }
-            if (typeof rotationCenterY === 'undefined') {
-                rotationCenterY = height / 2;
-            }
-
-            // Save active layer
-            const originalActiveLayer = paper.project.activeLayer;
-
-            // Create onion layer
-            const layer = new paper.Layer();
-            layer.locked = true;
-            layer.guide = true;
-            layer.opacity = 0.3;
-            layer.data.isOnionLayer = true;
-            this._onionLayer = layer;
-
-            const raster = new paper.Raster(image);
-            raster.guide = true;
-            raster.locked = true;
-            const x = width / 2 + (paperCenter.x - rotationCenterX);
-            const y = height / 2 + (paperCenter.y - rotationCenterY);
-            raster.position = new paper.Point(x, y);
-
-            layer.addChild(raster);
-
-            // Position onion layer behind drawing layer
-            const bgLayer = paper.project.layers.find(l => l.data && l.data.isBackgroundGuideLayer);
-            if (bgLayer) {
-                layer.insertAbove(bgLayer);
-            }
-
-            // Restore active layer
-            if (originalActiveLayer) originalActiveLayer.activate();
-        };
-        image.src = dataURI;
+                insertOnionLayer(item, paperCenter, frame.opacity);
+            });
+        }
     }
     render () {
         if (!this.props.imageId) return null;
         const {
+            onionEnabled,
+            onionFrames, // eslint-disable-line no-unused-vars
+            onionLoop,
+            onionNext,
+            onionPrevious,
+            onionSignature, // eslint-disable-line no-unused-vars
+            onionTinted,
+            onSetOnionSkinEnabled, // eslint-disable-line no-unused-vars
+            onSetOnionSkinSettings, // eslint-disable-line no-unused-vars
             selectedCostumeIndex,
             vm,
             ...componentProps
         } = this.props;
 
         return (
-            <div style={{position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column'}}>
-                <div style={{padding: '0.5rem', background: '#f9f9f9', display: 'flex', gap: '10px', alignItems: 'center'}}>
-                    <label style={{display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', fontWeight: 'bold'}}>
-                        <input 
-                            type="checkbox" 
-                            checked={this.state.onionSkinOn} 
-                            onChange={this.toggleOnionSkin} 
-                        />
-                        Onion Skin (Previous Frame)
-                    </label>
-                </div>
-                <div style={{position: 'relative', flexGrow: 1}}>
+            <div className={styles.paintEditorWrapper}>
+                <OnionSkinToggle
+                    enabled={onionEnabled}
+                    loop={onionLoop}
+                    next={onionNext}
+                    previous={onionPrevious}
+                    tinted={onionTinted}
+                    onChangeLoop={this.handleChangeLoop}
+                    onChangeNext={this.handleChangeNextFrames}
+                    onChangePrevious={this.handleChangePreviousFrames}
+                    onChangeTinted={this.handleChangeTinted}
+                    onToggle={this.handleToggleOnionSkin}
+                />
+                <div className={styles.paintEditorCanvas}>
                     <PaintEditor
                         {...componentProps}
                         image={vm.getCostume(selectedCostumeIndex)}
@@ -316,6 +216,15 @@ PaintEditorWrapper.propTypes = {
     imageFormat: PropTypes.string.isRequired,
     imageId: PropTypes.string.isRequired,
     name: PropTypes.string,
+    onSetOnionSkinEnabled: PropTypes.func.isRequired,
+    onSetOnionSkinSettings: PropTypes.func.isRequired,
+    onionEnabled: PropTypes.bool,
+    onionFrames: PropTypes.arrayOf(PropTypes.object).isRequired,
+    onionLoop: PropTypes.bool,
+    onionNext: PropTypes.number.isRequired,
+    onionPrevious: PropTypes.number.isRequired,
+    onionSignature: PropTypes.string,
+    onionTinted: PropTypes.bool,
     rotationCenterX: PropTypes.number,
     rotationCenterY: PropTypes.number,
     rtl: PropTypes.bool,
@@ -330,8 +239,31 @@ const mapStateToProps = (state, {selectedCostumeIndex}) => {
     const index = selectedCostumeIndex < sprite.costumes.length ?
         selectedCostumeIndex : sprite.costumes.length - 1;
     const costume = state.scratchGui.vm.editingTarget.sprite.costumes[index];
+
+    const onionSkin = state.scratchGui.onionSkin;
+    const onionFrames = onionSkin.enabled ?
+        getOnionFrames(index, sprite.costumes.length, onionSkin) : [];
+    // A complete description of what should be on screen. assetId is in there so editing a
+    // neighbouring costume redraws its onion frame.
+    const onionSignature = onionFrames.map(frame => {
+        const frameCostume = sprite.costumes[frame.index];
+        return [
+            frame.index,
+            frameCostume && frameCostume.assetId,
+            frame.opacity.toFixed(3),
+            frame.tint
+        ].join(':');
+    }).join(',');
+
     return {
         name: costume && costume.name,
+        onionEnabled: onionSkin.enabled,
+        onionFrames: onionFrames,
+        onionLoop: onionSkin.loop,
+        onionNext: onionSkin.next,
+        onionPrevious: onionSkin.previous,
+        onionSignature: onionSignature,
+        onionTinted: onionSkin.tinted,
         rotationCenterX: costume && costume.rotationCenterX,
         rotationCenterY: costume && costume.rotationCenterY,
         imageFormat: costume && costume.dataFormat,
@@ -343,6 +275,12 @@ const mapStateToProps = (state, {selectedCostumeIndex}) => {
     };
 };
 
+const mapDispatchToProps = dispatch => ({
+    onSetOnionSkinEnabled: enabled => dispatch(setOnionSkinEnabled(enabled)),
+    onSetOnionSkinSettings: settings => dispatch(setOnionSkinSettings(settings))
+});
+
 export default connect(
-    mapStateToProps
+    mapStateToProps,
+    mapDispatchToProps
 )(PaintEditorWrapper);

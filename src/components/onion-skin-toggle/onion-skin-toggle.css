@@ -1,0 +1,45 @@
+@import "../../css/colors.css";
+
+.onion-skin-container {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    background: $ui-white;
+    border-bottom: 1px solid $ui-black-transparent;
+    user-select: none;
+}
+
+.onion-skin-options {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.onion-skin-label,
+.onion-skin-option {
+    display: flex;
+    align-items: center;
+    gap: 0.3125rem;
+    font-size: 0.75rem;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: $text-primary;
+    cursor: pointer;
+}
+
+.onion-skin-label {
+    font-weight: bold;
+}
+
+.onion-skin-select {
+    font-size: 0.75rem;
+    font-family: inherit;
+    color: $text-primary;
+    border: 1px solid $ui-black-transparent;
+    border-radius: 0.25rem;
+    background: $ui-white;
+    padding: 0.0625rem 0.125rem;
+    cursor: pointer;
+}
