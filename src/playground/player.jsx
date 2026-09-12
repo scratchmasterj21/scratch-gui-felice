@@ -20,7 +20,7 @@ if (process.env.NODE_ENV === 'production' && typeof window === 'object') {
 import styles from './player.css';
 
 
-// ?project=https://example.com/project.sb3    
+// ?project=https://example.com/project.sb3
 const onVmInit = vm => {
 
     // Load a project from a URL. Example: ?project_url=/example.sb3
@@ -37,9 +37,9 @@ const onVmInit = vm => {
                     .then(response => {
                         if (response.ok) {
                             return response.arrayBuffer();
-                        } else {
-                            console.error('Failed to fetch project: ' + response.statusText);
                         }
+                        console.error(`Failed to fetch project: ${response.statusText}`);
+                        
                     })
                     .then(arrayBuffer => {
                         if (arrayBuffer) {
@@ -47,12 +47,12 @@ const onVmInit = vm => {
                             vm.loadProject(arrayBuffer)
                                 .catch(error => {
                                     projectLoaded = false;
-                                    console.error('Failed to load project. ' + error);
+                                    console.error(`Failed to load project. ${error}`);
                                 }
-                            );
+                                );
                         }
                     }
-                );
+                    );
             }
         }
     });
@@ -105,7 +105,10 @@ document.body.appendChild(appTarget);
 
 ReactDOM.render(<WrappedPlayer isPlayerOnly />, appTarget);
 
-function resizerender() {
-    ReactDOM.render(<WrappedPlayer isPlayerOnly isFullScreen />, appTarget);
+function resizerender () {
+    ReactDOM.render(<WrappedPlayer
+        isPlayerOnly
+        isFullScreen
+    />, appTarget);
 }
 setTimeout(resizerender, 1500);

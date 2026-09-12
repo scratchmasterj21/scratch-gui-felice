@@ -70,7 +70,7 @@ class Backpack extends React.Component {
         this.props.vm.removeListener('BLOCK_DRAG_UPDATE', this.handleBlockDragUpdate);
     }
     getBackpackAssetURL (asset) {
-//        return `${this.props.host}/${asset.assetId}.${asset.dataFormat}`;
+        //        return `${this.props.host}/${asset.assetId}.${asset.dataFormat}`;
         const backpackObj = getBackpackObjectById(asset.assetId);
         return backpackObj ? `data:${backpackObj.mime};base64,${backpackObj.body}` : false;
     }
@@ -112,7 +112,7 @@ class Backpack extends React.Component {
                     // Force the asset to save to the asset server before storing in backpack
                     // Ensures any asset present in the backpack is also on the asset server
 
-//                    if (presaveAsset && !presaveAsset.clean) {
+                    //                    if (presaveAsset && !presaveAsset.clean) {
                     if (false && presaveAsset && !presaveAsset.clean) {
                         return storage.store(
                             presaveAsset.assetType,
@@ -257,11 +257,11 @@ const getTokenAndUsername = state => {
     }
     // Otherwise try to pull testing params out of the URL, or return nulls
     // TODO a hack for testing the backpack
-//    const tokenMatches = window.location.href.match(/[?&]token=([^&]*)&?/);
-//    const usernameMatches = window.location.href.match(/[?&]username=([^&]*)&?/);
+    //    const tokenMatches = window.location.href.match(/[?&]token=([^&]*)&?/);
+    //    const usernameMatches = window.location.href.match(/[?&]username=([^&]*)&?/);
     return {
-//        token: tokenMatches ? tokenMatches[1] : null,
-//        username: usernameMatches ? usernameMatches[1] : null
+        //        token: tokenMatches ? tokenMatches[1] : null,
+        //        username: usernameMatches ? usernameMatches[1] : null
 
         token: 'sc2',
         username: 'scr_bp'

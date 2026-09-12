@@ -28,7 +28,7 @@ class Controls extends React.Component {
         if (this.props.vm && this.props.vm.runtime) {
             const count = this.props.vm.runtime.targets.filter(t => !t.isOriginal).length;
             if (count !== this.state.cloneCount) {
-                this.setState({ cloneCount: count });
+                this.setState({cloneCount: count});
             }
         }
     }

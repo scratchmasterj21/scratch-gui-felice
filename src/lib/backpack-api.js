@@ -4,7 +4,7 @@ import soundPayload from './backpack/sound-payload';
 import spritePayload from './backpack/sprite-payload';
 import codePayload from './backpack/code-payload';
 
-const LOCALSTORAGE_KEY = '[eyangicques] backpack'
+const LOCALSTORAGE_KEY = '[eyangicques] backpack';
 
 const randomId = () => {
     let str = '';
@@ -12,7 +12,7 @@ const randomId = () => {
         str += Math.floor(Math.random() * 36).toString(36);
     }
     return str;
-}
+};
 
 // Add a new property for the full thumbnail url, which includes the host.
 // Also include a full body url for loading sprite zips
@@ -75,12 +75,12 @@ const saveBackpackObject = ({
 */
     const backpack = JSON.parse(localStorage.getItem(LOCALSTORAGE_KEY) || '[]') || [];
     const newEntry = {
-      type,
-      mime,
-      name,
-      body,
-      thumbnail,
-      id: randomId()
+        type,
+        mime,
+        name,
+        body,
+        thumbnail,
+        id: randomId()
     };
     backpack.splice(0, 0, newEntry);
     localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(backpack));
@@ -109,8 +109,8 @@ const deleteBackpackObject = ({
     const backpack = JSON.parse(localStorage.getItem(LOCALSTORAGE_KEY) || '[]') || [];
     const index = backpack.findIndex(entry => entry.id === id);
     if (index >= 0) {
-      backpack.splice(index, 1);
-      localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(backpack));
+        backpack.splice(index, 1);
+        localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(backpack));
     }
     resolve({ok: true});
 });
