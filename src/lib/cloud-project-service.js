@@ -1,4 +1,5 @@
 import {getSupabase} from './supabase';
+import log from './log';
 
 const BUCKET_NAME = 'scratch-projects';
 
@@ -180,7 +181,7 @@ export const loadProject = async filePath => {
         }
     } catch (e) {
         // eslint-disable-next-line no-console
-        console.warn('Failed to load project via signed URL, falling back to download:', e);
+        log.warn('Failed to load project via signed URL, falling back to download:', e);
     }
 
     // 2. Fallback to direct download with a cacheNonce timestamp
@@ -210,7 +211,7 @@ export const deleteProject = async (projectId, filePath) => {
         .remove([filePath]);
 
     if (storageError) {
-        console.warn('Failed to delete storage file:', storageError.message);
+        log.warn('Failed to delete storage file:', storageError.message);
         // Continue to delete DB record even if file deletion fails
     }
 

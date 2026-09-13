@@ -105,6 +105,7 @@ import prehistoricLogo from './prehistoric-logo.svg';
 import oldtimeyLogo from './oldtimey-logo.svg';
 
 import sharedMessages from '../../lib/shared-messages';
+import log from '../../lib/log';
 
 const ariaMessages = defineMessages({
     language: {
@@ -326,7 +327,7 @@ class MenuBar extends React.Component {
                 setTimeout(() => this.setState({cloudSaveStatus: null}), 3000);
             })
             .catch(err => {
-                console.error('Cloud save failed:', err);
+                log.error('Cloud save failed:', err);
                 this.setState({cloudSaveStatus: 'error'});
                 if (!isAutoSave) {
                     Swal.fire({

@@ -18,6 +18,7 @@ if (process.env.NODE_ENV === 'production' && typeof window === 'object') {
 }
 
 import styles from './player.css';
+import log from '../lib/log.js';
 
 
 // ?project=https://example.com/project.sb3
@@ -38,7 +39,7 @@ const onVmInit = vm => {
                         if (response.ok) {
                             return response.arrayBuffer();
                         }
-                        console.error(`Failed to fetch project: ${response.statusText}`);
+                        log.error(`Failed to fetch project: ${response.statusText}`);
                         
                     })
                     .then(arrayBuffer => {
@@ -47,7 +48,7 @@ const onVmInit = vm => {
                             vm.loadProject(arrayBuffer)
                                 .catch(error => {
                                     projectLoaded = false;
-                                    console.error(`Failed to load project. ${error}`);
+                                    log.error(`Failed to load project. ${error}`);
                                 }
                                 );
                         }

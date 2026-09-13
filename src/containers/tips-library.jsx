@@ -32,6 +32,8 @@ import {
     viewCards
 } from '../reducers/cards';
 
+import {setProjectTitle} from '../reducers/project-title';
+
 import {
     LoadingStates,
     onLoadedProject
@@ -85,6 +87,18 @@ class TipsLibrary extends React.PureComponent {
         these, which is a dead link anywhere else, so the starter is fetched from our own
         storage and loaded in place instead.
     */
+    /*
+        A deck's name is a FormattedMessage element rather than a string, so the message it
+        carries has to be unwrapped and formatted to get something usable as a title.
+    */
+    getTutorialTitle (item) {
+        const name = item.name;
+        if (!name || !name.props || !name.props.id) return null;
+        return this.props.intl.formatMessage({
+            id: name.props.id,
+            defaultMessage: name.props.defaultMessage
+        });
+    }
     loadStarterAndActivate (item) {
         // Loading a starter is a file upload as far as project state is concerned, and the
         // machine only accepts that from a settled state. If the editor is already mid-load,
@@ -111,6 +125,13 @@ class TipsLibrary extends React.PureComponent {
                 // editor stays stuck behind the loading screen.
                 this.props.onLoadingFinished(transition.finishState, loadingSuccess);
                 if (loadingSuccess) {
+                    /*
+                        Rename the project to the tutorial. Without this the title still
+                        reads whatever was open before, so a pupil who saves ends up with a
+                        second project under their old name that is really the starter.
+                    */
+                    const title = this.getTutorialTitle(item);
+                    if (title) this.props.onSetProjectTitle(title);
                     this.props.onActivateDeck(item.id);
                 }
             });
@@ -213,6 +234,7 @@ TipsLibrary.propTypes = {
     onLoadingFinished: PropTypes.func.isRequired,
     onLoadingStarted: PropTypes.func.isRequired,
     onRequestClose: PropTypes.func.isRequired,
+    onSetProjectTitle: PropTypes.func.isRequired,
     onViewCards: PropTypes.func.isRequired,
     projectChanged: PropTypes.bool,
     projectId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -244,6 +266,7 @@ const mapDispatchToProps = dispatch => ({
         dispatch(openLoadingProject());
     },
     onRequestClose: () => dispatch(closeTipsLibrary()),
+    onSetProjectTitle: title => dispatch(setProjectTitle(title)),
     onViewCards: () => dispatch(viewCards())
 });
 

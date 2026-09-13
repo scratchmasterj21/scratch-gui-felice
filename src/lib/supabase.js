@@ -1,4 +1,5 @@
 import {createClient} from '@supabase/supabase-js';
+import log from './log';
 
 // ============================================================
 // IMPORTANT: Replace these with your actual Supabase credentials
@@ -69,7 +70,7 @@ export const updateUserAvatar = async function (userId, avatar) {
         });
     } catch (err) {
         // eslint-disable-next-line no-console
-        console.warn('Failed to update user avatar in Supabase:', err);
+        log.warn('Failed to update user avatar in Supabase:', err);
     }
 };
 

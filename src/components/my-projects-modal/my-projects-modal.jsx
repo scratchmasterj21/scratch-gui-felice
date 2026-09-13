@@ -14,6 +14,7 @@ import {
 } from '../../lib/cloud-project-service';
 
 import styles from './my-projects-modal.css';
+import log from '../../lib/log';
 
 class MyProjectsModal extends React.Component {
     constructor (props) {
@@ -107,7 +108,7 @@ class MyProjectsModal extends React.Component {
                 }));
             })
             .catch(err => {
-                console.error('Failed to toggle share status:', err);
+                log.error('Failed to toggle share status:', err);
                 this.setState({sharingProjectId: null});
                 Swal.fire({
                     heightAuto: false,
@@ -145,7 +146,7 @@ class MyProjectsModal extends React.Component {
                         this.props.onClose();
                     })
                     .catch(err => {
-                        console.error('Failed to load project into VM:', err);
+                        log.error('Failed to load project into VM:', err);
                         this.setState({
                             error: 'Failed to load project. The file may be corrupted.',
                             loadingProjectId: null
@@ -153,7 +154,7 @@ class MyProjectsModal extends React.Component {
                     });
             })
             .catch(err => {
-                console.error('Failed to download project:', err);
+                log.error('Failed to download project:', err);
                 this.setState({
                     error: `Failed to download project: ${err.message}`,
                     loadingProjectId: null
@@ -189,7 +190,7 @@ class MyProjectsModal extends React.Component {
                         });
                     })
                     .catch(err => {
-                        console.error('Failed to delete project:', err);
+                        log.error('Failed to delete project:', err);
                         this.setState({
                             error: `Failed to delete project: ${err.message}`,
                             deletingProjectId: null
