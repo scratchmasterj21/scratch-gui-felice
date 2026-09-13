@@ -9,7 +9,7 @@
  * with it untested.
  */
 
-import {getDroppedInputs, getGainedInputs} from './block-switching';
+import {getDroppedInputs, getGainedInputs, getInputRenames} from './block-switching';
 
 /**
  * The <value> or <statement> element for a named input, if the block has one.
@@ -62,6 +62,14 @@ const buildShadowDom = (ownerDocument, inputName, shadow) => {
  */
 const transformBlockDom = (blockDom, fromOpcode, toOpcode) => {
     blockDom.setAttribute('type', toOpcode);
+
+    // Inputs that hold the same thing under a different name, such as "change x by" and
+    // "set x to". Renaming carries the contents across instead of dropping and refilling.
+    const renames = getInputRenames(fromOpcode, toOpcode);
+    for (const [oldName, newName] of Object.entries(renames)) {
+        const inputDom = getInputDom(blockDom, oldName);
+        if (inputDom) inputDom.setAttribute('name', newName);
+    }
 
     const orphanDoms = [];
     for (const inputName of getDroppedInputs(fromOpcode, toOpcode)) {

@@ -1,6 +1,10 @@
 import {
     BLOCK_INPUTS,
     BLOCK_LABELS,
+    BLOCK_SHAPES,
+    areShapesCompatible,
+    getInputRenames,
+    getShapeFamily,
     DEFAULT_SHADOWS,
     SWITCH_GROUPS,
     getDroppedInputs,
@@ -57,7 +61,7 @@ describe('the switch table itself', () => {
 describe('getSwitchOptions', () => {
     test('offers the whole operator family', () => {
         expect(opcodesOf(getSwitchOptions('operator_add')).sort()).toEqual([
-            'operator_divide', 'operator_multiply', 'operator_subtract'
+            'operator_divide', 'operator_mod', 'operator_multiply', 'operator_subtract'
         ]);
     });
 
@@ -138,5 +142,69 @@ describe('getGainedInputs', () => {
 
     test('gains nothing when the inputs match', () => {
         expect(getGainedInputs('operator_gt', 'operator_lt')).toEqual([]);
+    });
+});
+
+describe('shape compatibility', () => {
+    /*
+     * The guard that makes adding new groups safe. Two blocks can only stand in for each
+     * other if they fit the same hole, and several pairs have identical input names while
+     * having incompatible shapes - operator_join is a round reporter and operator_contains
+     * is a hexagonal boolean, but both take STRING1 and STRING2.
+     */
+    test('every group is shape compatible throughout', () => {
+        for (const group of SWITCH_GROUPS) {
+            for (const opcode of group) {
+                expect(BLOCK_SHAPES[opcode]).toBeDefined();
+                for (const other of group) {
+                    expect(areShapesCompatible(opcode, other)).toBe(true);
+                }
+            }
+        }
+    });
+
+    test('stack blocks, round reporters and booleans are separate families', () => {
+        expect(getShapeFamily('control_if')).toBe('stack');
+        expect(getShapeFamily('operator_add')).toBe('number' && 'round');
+        expect(getShapeFamily('operator_equals')).toBe('boolean');
+        expect(areShapesCompatible('operator_add', 'operator_equals')).toBe(false);
+        expect(areShapesCompatible('control_if', 'operator_add')).toBe(false);
+    });
+
+    // forever is shape_end - nothing can follow it - but it still stacks, so swapping it
+    // with repeat is allowed. Blocks after the repeat are left loose instead.
+    test('forever can still be swapped with repeat despite being an end block', () => {
+        expect(BLOCK_SHAPES.control_forever).toBe('end');
+        expect(areShapesCompatible('control_repeat', 'control_forever')).toBe(true);
+    });
+
+    test('an unknown block is compatible with nothing', () => {
+        expect(areShapesCompatible('not_a_block', 'control_if')).toBe(false);
+        expect(getShapeFamily('not_a_block')).toBeNull();
+    });
+});
+
+describe('input renaming', () => {
+    test('carries the value across for set/change pairs', () => {
+        expect(getInputRenames('motion_changexby', 'motion_setx')).toEqual({DX: 'X'});
+        expect(getInputRenames('motion_setx', 'motion_changexby')).toEqual({X: 'DX'});
+        expect(getInputRenames('looks_changesizeby', 'looks_setsizeto')).toEqual({CHANGE: 'SIZE'});
+    });
+
+    test('a renamed input is neither dropped nor gained', () => {
+        expect(getDroppedInputs('motion_changexby', 'motion_setx')).toEqual([]);
+        expect(getGainedInputs('motion_changexby', 'motion_setx')).toEqual([]);
+    });
+
+    test('renaming leaves untouched inputs alone', () => {
+        // change effect by (EFFECT, CHANGE) -> set effect to (EFFECT, VALUE)
+        expect(getInputRenames('looks_changeeffectby', 'looks_seteffectto')).toEqual({CHANGE: 'VALUE'});
+        expect(getDroppedInputs('looks_changeeffectby', 'looks_seteffectto')).toEqual([]);
+        expect(getGainedInputs('looks_changeeffectby', 'looks_seteffectto')).toEqual([]);
+    });
+
+    test('pairs with matching names need no rename', () => {
+        expect(getInputRenames('sound_seteffectto', 'sound_changeeffectby')).toEqual({});
+        expect(getInputRenames('motion_turnright', 'motion_turnleft')).toEqual({});
     });
 });

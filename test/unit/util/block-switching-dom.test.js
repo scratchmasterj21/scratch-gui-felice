@@ -181,3 +181,32 @@ describe('transformBlockDom', () => {
         expect(orphans).toEqual([]);
     });
 });
+
+describe('input renaming in the serialised block', () => {
+    test('change x by becomes set x to, carrying the value across', () => {
+        const dom = makeBlockDom('motion_changexby', [
+            {tag: 'value', name: 'DX', childType: 'operator_random'}
+        ]);
+        const orphans = transformBlockDom(dom, 'motion_changexby', 'motion_setx');
+
+        expect(dom.getAttribute('type')).toBe('motion_setx');
+        expect(inputNames(dom)).toEqual(['X']);
+        expect(getInputDom(dom, 'X').firstChild.getAttribute('type')).toBe('operator_random');
+        expect(orphans).toEqual([]);
+    });
+
+    test('change effect by becomes set effect to, leaving EFFECT untouched', () => {
+        const dom = makeBlockDom('looks_changeeffectby', [
+            {tag: 'value', name: 'EFFECT'},
+            {tag: 'value', name: 'CHANGE', childType: 'math_number', shadow: true}
+        ]);
+        transformBlockDom(dom, 'looks_changeeffectby', 'looks_seteffectto');
+        expect(inputNames(dom)).toEqual(['EFFECT', 'VALUE']);
+    });
+
+    test('a rename in the other direction works too', () => {
+        const dom = makeBlockDom('looks_setsizeto', [{tag: 'value', name: 'SIZE'}]);
+        transformBlockDom(dom, 'looks_setsizeto', 'looks_changesizeby');
+        expect(inputNames(dom)).toEqual(['CHANGE']);
+    });
+});

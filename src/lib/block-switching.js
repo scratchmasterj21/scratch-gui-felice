@@ -17,6 +17,7 @@
 // Inputs each block actually has, in definition order.
 const BLOCK_INPUTS = {
     operator_add: ['NUM1', 'NUM2'],
+    operator_mod: ['NUM1', 'NUM2'],
     operator_subtract: ['NUM1', 'NUM2'],
     operator_multiply: ['NUM1', 'NUM2'],
     operator_divide: ['NUM1', 'NUM2'],
@@ -30,11 +31,23 @@ const BLOCK_INPUTS = {
 
     data_setvariableto: ['VARIABLE', 'VALUE'],
     data_changevariableby: ['VARIABLE', 'VALUE'],
+    data_showvariable: ['VARIABLE'],
+    data_hidevariable: ['VARIABLE'],
+    data_showlist: ['LIST'],
+    data_hidelist: ['LIST'],
 
     looks_say: ['MESSAGE'],
     looks_think: ['MESSAGE'],
     looks_sayforsecs: ['MESSAGE', 'SECS'],
     looks_thinkforsecs: ['MESSAGE', 'SECS'],
+    looks_show: [],
+    looks_hide: [],
+    looks_switchbackdropto: ['BACKDROP'],
+    looks_switchbackdroptoandwait: ['BACKDROP'],
+    looks_changesizeby: ['CHANGE'],
+    looks_setsizeto: ['SIZE'],
+    looks_changeeffectby: ['EFFECT', 'CHANGE'],
+    looks_seteffectto: ['EFFECT', 'VALUE'],
 
     control_if: ['CONDITION', 'SUBSTACK'],
     control_if_else: ['CONDITION', 'SUBSTACK', 'SUBSTACK2'],
@@ -43,7 +56,122 @@ const BLOCK_INPUTS = {
     control_forever: ['SUBSTACK'],
 
     motion_gotoxy: ['X', 'Y'],
-    motion_glidesecstoxy: ['SECS', 'X', 'Y']
+    motion_glidesecstoxy: ['SECS', 'X', 'Y'],
+    motion_turnright: ['DEGREES'],
+    motion_turnleft: ['DEGREES'],
+    motion_changexby: ['DX'],
+    motion_setx: ['X'],
+    motion_changeyby: ['DY'],
+    motion_sety: ['Y'],
+
+    sound_play: ['SOUND_MENU'],
+    sound_playuntildone: ['SOUND_MENU'],
+    sound_setvolumeto: ['VOLUME'],
+    sound_changevolumeby: ['VOLUME'],
+    sound_seteffectto: ['EFFECT', 'VALUE'],
+    sound_changeeffectby: ['EFFECT', 'VALUE'],
+
+    event_broadcast: ['BROADCAST_INPUT'],
+    event_broadcastandwait: ['BROADCAST_INPUT']
+};
+
+/*
+ * The shape of each block, read from the "extensions" field in
+ * node_modules/scratch-blocks/blocks_vertical/ (or from previousStatement/nextStatement
+ * for the few blocks that declare it the older way).
+ *
+ * Two blocks can only be swapped if they fit the same hole. A test enforces that every
+ * group below is shape-compatible, so a future addition cannot quietly put a reporter
+ * where a stack block belongs.
+ */
+const BLOCK_SHAPES = {
+    operator_add: 'number',
+    operator_subtract: 'number',
+    operator_multiply: 'number',
+    operator_divide: 'number',
+    operator_mod: 'number',
+
+    operator_gt: 'boolean',
+    operator_lt: 'boolean',
+    operator_equals: 'boolean',
+    operator_and: 'boolean',
+    operator_or: 'boolean',
+
+    data_setvariableto: 'statement',
+    data_changevariableby: 'statement',
+    data_showvariable: 'statement',
+    data_hidevariable: 'statement',
+    data_showlist: 'statement',
+    data_hidelist: 'statement',
+
+    looks_say: 'statement',
+    looks_think: 'statement',
+    looks_sayforsecs: 'statement',
+    looks_thinkforsecs: 'statement',
+    looks_show: 'statement',
+    looks_hide: 'statement',
+    looks_switchbackdropto: 'statement',
+    looks_switchbackdroptoandwait: 'statement',
+    looks_changesizeby: 'statement',
+    looks_setsizeto: 'statement',
+    looks_changeeffectby: 'statement',
+    looks_seteffectto: 'statement',
+
+    control_if: 'statement',
+    control_if_else: 'statement',
+    control_repeat_until: 'statement',
+    control_repeat: 'statement',
+    // "forever" is shape_end: nothing can follow it, which is why switching a repeat that
+    // has blocks after it leaves those blocks loose on the workspace.
+    control_forever: 'end',
+
+    motion_gotoxy: 'statement',
+    motion_glidesecstoxy: 'statement',
+    motion_turnright: 'statement',
+    motion_turnleft: 'statement',
+    motion_changexby: 'statement',
+    motion_setx: 'statement',
+    motion_changeyby: 'statement',
+    motion_sety: 'statement',
+
+    sound_play: 'statement',
+    sound_playuntildone: 'statement',
+    sound_setvolumeto: 'statement',
+    sound_changevolumeby: 'statement',
+    sound_seteffectto: 'statement',
+    sound_changeeffectby: 'statement',
+
+    event_broadcast: 'statement',
+    event_broadcastandwait: 'statement'
+};
+
+/*
+ * Shapes that fit the same hole. Statement and end blocks both stack; number and string
+ * reporters are both round and Scratch treats their values loosely, so they are
+ * interchangeable. Booleans are hexagonal and fit nowhere else.
+ */
+const SHAPE_FAMILIES = {
+    statement: 'stack',
+    end: 'stack',
+    number: 'round',
+    string: 'round',
+    boolean: 'boolean'
+};
+
+/*
+ * Inputs that hold the same thing under a different name. Without these the set/change
+ * pairs that pupils use constantly could not be switched, because nothing would carry the
+ * value across.
+ */
+const INPUT_RENAMES = {
+    'motion_changexby>motion_setx': {DX: 'X'},
+    'motion_setx>motion_changexby': {X: 'DX'},
+    'motion_changeyby>motion_sety': {DY: 'Y'},
+    'motion_sety>motion_changeyby': {Y: 'DY'},
+    'looks_changesizeby>looks_setsizeto': {CHANGE: 'SIZE'},
+    'looks_setsizeto>looks_changesizeby': {SIZE: 'CHANGE'},
+    'looks_changeeffectby>looks_seteffectto': {CHANGE: 'VALUE'},
+    'looks_seteffectto>looks_changeeffectby': {VALUE: 'CHANGE'}
 };
 
 /*
@@ -56,7 +184,7 @@ const BLOCK_INPUTS = {
  * switching `=` to `and` would leave text blocks jammed in boolean sockets.
  */
 const SWITCH_GROUPS = [
-    ['operator_add', 'operator_subtract', 'operator_multiply', 'operator_divide'],
+    ['operator_add', 'operator_subtract', 'operator_multiply', 'operator_divide', 'operator_mod'],
     ['operator_gt', 'operator_lt', 'operator_equals'],
     ['operator_and', 'operator_or'],
     ['data_setvariableto', 'data_changevariableby'],
@@ -67,7 +195,20 @@ const SWITCH_GROUPS = [
     ['control_if', 'control_if_else'],
     ['control_if', 'control_repeat_until'],
     ['control_repeat', 'control_forever'],
-    ['motion_gotoxy', 'motion_glidesecstoxy']
+    ['motion_gotoxy', 'motion_glidesecstoxy'],
+    ['motion_turnright', 'motion_turnleft'],
+    ['motion_changexby', 'motion_setx'],
+    ['motion_changeyby', 'motion_sety'],
+    ['looks_show', 'looks_hide'],
+    ['looks_switchbackdropto', 'looks_switchbackdroptoandwait'],
+    ['looks_changesizeby', 'looks_setsizeto'],
+    ['looks_changeeffectby', 'looks_seteffectto'],
+    ['sound_play', 'sound_playuntildone'],
+    ['sound_setvolumeto', 'sound_changevolumeby'],
+    ['sound_seteffectto', 'sound_changeeffectby'],
+    ['data_showvariable', 'data_hidevariable'],
+    ['data_showlist', 'data_hidelist'],
+    ['event_broadcast', 'event_broadcastandwait']
 ];
 
 /*
@@ -97,7 +238,34 @@ const BLOCK_LABELS = {
     control_repeat: 'repeat',
     control_forever: 'forever',
     motion_gotoxy: 'go to x y',
-    motion_glidesecstoxy: 'glide to x y'
+    motion_glidesecstoxy: 'glide to x y',
+    operator_mod: 'mod',
+    motion_turnright: 'turn right',
+    motion_turnleft: 'turn left',
+    motion_changexby: 'change x by',
+    motion_setx: 'set x to',
+    motion_changeyby: 'change y by',
+    motion_sety: 'set y to',
+    looks_show: 'show',
+    looks_hide: 'hide',
+    looks_switchbackdropto: 'switch backdrop to',
+    looks_switchbackdroptoandwait: 'switch backdrop and wait',
+    looks_changesizeby: 'change size by',
+    looks_setsizeto: 'set size to',
+    looks_changeeffectby: 'change effect by',
+    looks_seteffectto: 'set effect to',
+    sound_play: 'start sound',
+    sound_playuntildone: 'play sound until done',
+    sound_setvolumeto: 'set volume to',
+    sound_changevolumeby: 'change volume by',
+    sound_seteffectto: 'set sound effect to',
+    sound_changeeffectby: 'change sound effect by',
+    data_showvariable: 'show variable',
+    data_hidevariable: 'hide variable',
+    data_showlist: 'show list',
+    data_hidelist: 'hide list',
+    event_broadcast: 'broadcast',
+    event_broadcastandwait: 'broadcast and wait'
 };
 
 /*
@@ -114,6 +282,33 @@ const DEFAULT_SHADOWS = {
 };
 
 const getInputs = opcode => BLOCK_INPUTS[opcode] || [];
+
+/**
+ * The hole a block fits into: 'stack', 'round' or 'boolean'.
+ * @param {string} opcode The block's type
+ * @returns {?string} the shape family, or null if the block is unknown
+ */
+const getShapeFamily = opcode => SHAPE_FAMILIES[BLOCK_SHAPES[opcode]] || null;
+
+/**
+ * Whether two blocks fit the same hole, and so could stand in for each other.
+ * @param {string} a One block type
+ * @param {string} b Another block type
+ * @returns {boolean} true if both are known and share a shape family
+ */
+const areShapesCompatible = (a, b) => {
+    const familyA = getShapeFamily(a);
+    return Boolean(familyA) && familyA === getShapeFamily(b);
+};
+
+/**
+ * Inputs that change name between two blocks, so their contents can be carried across.
+ * @param {string} fromOpcode The block being switched
+ * @param {string} toOpcode The block it is becoming
+ * @returns {object} a map of old input name to new input name, possibly empty
+ */
+const getInputRenames = (fromOpcode, toOpcode) =>
+    INPUT_RENAMES[`${fromOpcode}>${toOpcode}`] || {};
 
 /**
  * Every opcode that appears in some switch group.
@@ -158,7 +353,10 @@ const getSwitchOptions = opcode => {
  */
 const getDroppedInputs = (fromOpcode, toOpcode) => {
     const target = getInputs(toOpcode);
-    return getInputs(fromOpcode).filter(name => !target.includes(name));
+    const renames = getInputRenames(fromOpcode, toOpcode);
+    // A renamed input is carried across, not dropped.
+    return getInputs(fromOpcode)
+        .filter(name => !renames[name] && !target.includes(name));
 };
 
 /**
@@ -169,15 +367,24 @@ const getDroppedInputs = (fromOpcode, toOpcode) => {
  */
 const getGainedInputs = (fromOpcode, toOpcode) => {
     const source = getInputs(fromOpcode);
+    const renames = getInputRenames(fromOpcode, toOpcode);
+    const arriving = new Set(Object.values(renames));
     const shadows = DEFAULT_SHADOWS[toOpcode] || {};
     return getInputs(toOpcode)
-        .filter(name => !source.includes(name))
+        // An input that something is being renamed into is already filled.
+        .filter(name => !source.includes(name) && !arriving.has(name))
         .map(name => ({name, shadow: shadows[name] || null}));
 };
 
 export {
     BLOCK_INPUTS,
     BLOCK_LABELS,
+    BLOCK_SHAPES,
+    INPUT_RENAMES,
+    SHAPE_FAMILIES,
+    areShapesCompatible,
+    getInputRenames,
+    getShapeFamily,
     DEFAULT_SHADOWS,
     SWITCH_GROUPS,
     getDroppedInputs,
