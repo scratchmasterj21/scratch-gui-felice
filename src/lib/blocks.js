@@ -1,3 +1,5 @@
+import {installBlockSwitching} from './block-switching-menu';
+
 /**
  * Connect scratch blocks with the vm
  * @param {VirtualMachine} vm - The scratch vm
@@ -6,6 +8,11 @@
  */
 export default function (vm, useCatBlocks) {
     const ScratchBlocks = useCatBlocks ? require('cat-blocks') : require('scratch-blocks');
+
+    // Adds "Switch to ..." entries to the right-click menu of switchable blocks. Attaches
+    // to individual block definitions, never to BlockSvg.prototype - see
+    // block-switching-menu.js for why that distinction matters. Idempotent.
+    installBlockSwitching(ScratchBlocks);
     const jsonForMenuBlock = function (name, menuOptionsFn, colors, start) {
         return {
             message0: '%1',
