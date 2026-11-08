@@ -36,6 +36,11 @@ jobs:
                   GitHub ref: ${{ github.ref }}
                   GitHub head ref: ${{ github.head_ref }}
                   EOF
+            - name: Hash package-lock.json before install
+              # npm install may rewrite package-lock.json; later jobs hash the committed
+              # file, so compute the cache key now to keep keys consistent across jobs.
+              id: lockhash
+              run: echo "hash=${{ hashFiles('package-lock.json') }}" >> "$GITHUB_OUTPUT"
             - name: Install Dependencies
               run: npm install --legacy-peer-deps
             - name: Lint
@@ -47,21 +52,21 @@ jobs:
               with:
                 path:
                     node_modules
-                key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+                key: ${{ runner.os }}-node-${{ steps.lockhash.outputs.hash }}
             - name: Cache src/generated
               id: cache-generated
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
               with:
                 path:
                     src/generated
-                key: ${{ runner.os }}-generated-${{ hashFiles('package-lock.json') }}
+                key: ${{ runner.os }}-generated-${{ steps.lockhash.outputs.hash }}
             - name: Cache static/microbit
               id: cache-static
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
               with:
                 path:
                     static/microbit
-                key: ${{ runner.os }}-microbit-${{ hashFiles('package-lock.json') }}
+                key: ${{ runner.os }}-microbit-${{ steps.lockhash.outputs.hash }}
     test-unit:
         needs: setup
         runs-on: ubuntu-latest
