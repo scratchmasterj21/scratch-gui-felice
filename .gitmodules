@@ -1,0 +1,6 @@
+[submodule "ml2scratch"]
+	path = ml2scratch
+	url = https://github.com/champierre/ml2scratch.git
+[submodule "posenet2scratch"]
+	path = posenet2scratch
+	url = https://github.com/champierre/posenet2scratch.git
