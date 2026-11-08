@@ -98,7 +98,9 @@ import aboutIcon from './icon--about.svg';
 import fileIcon from './icon--file.svg';
 import editIcon from './icon--edit.svg';
 
-import scratchLogo from './new-felice-scratch-logo.svg';
+// Bundled locally: hotlinking a large remote image here blocks the window
+// load event, which used to stall font loading and the whole project load.
+import scratchLogo from './felice-scratch-lab-logo.png';
 import ninetiesLogo from './nineties_logo.svg';
 import catLogo from './cat_logo.svg';
 import prehistoricLogo from './prehistoric-logo.svg';
@@ -1135,7 +1137,7 @@ MenuBar.propTypes = {
 };
 
 MenuBar.defaultProps = {
-    logo: 'https://i.imgur.com/0J5brlL.png',
+    logo: scratchLogo,
     onShare: () => {}
 };
 
