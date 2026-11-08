@@ -19,10 +19,25 @@ const FONTS = [
  * @param {React.Component} WrappedComponent component to receive fontsLoaded prop
  * @returns {React.Component} component with font loading behavior
  */
+// The window load event waits for every image/script on the page, so one slow
+// remote resource can delay it indefinitely. If it hasn't fired after this
+// long, start loading the fonts anyway.
+const LOAD_EVENT_FALLBACK_MS = 3000;
+// Last resort: never keep the project waiting on fonts longer than this.
+const FONTS_LOADED_DEADLINE_MS = 10000;
+
 const FontLoaderHOC = function (WrappedComponent) {
     class FontLoaderComponent extends React.Component {
         componentDidMount () {
             if (this.props.fontsLoaded) return;
+
+            let finished = false;
+            const finish = () => {
+                if (finished || this.unmounted) return;
+                finished = true;
+                this.cleanup();
+                this.props.onSetFontsLoaded();
+            };
 
             const getFontPromises = () => {
                 const fontPromises = [];
@@ -43,21 +58,32 @@ const FontLoaderHOC = function (WrappedComponent) {
                 }
                 return fontPromises;
             };
-            // Font promises must be gathered after the document is loaded, because on Mac Chrome, the promise
-            // objects get replaced and the old ones never resolve.
+            const loadFonts = () => {
+                Promise.all(getFontPromises()).then(finish, finish);
+            };
+            // Font promises should be gathered after the document is loaded, because on Mac Chrome, the promise
+            // objects get replaced and the old ones never resolve. Gathering again on the load event (and the
+            // final deadline) covers the case where the early fallback picked up stale promises.
             if (document.readyState === 'complete') {
-                Promise.all(getFontPromises()).then(() => {
-                    this.props.onSetFontsLoaded();
-                });
+                loadFonts();
             } else {
-                document.onreadystatechange = () => {
-                    if (document.readyState !== 'complete') return;
-                    document.onreadystatechange = null;
-                    Promise.all(getFontPromises()).then(() => {
-                        this.props.onSetFontsLoaded();
-                    });
-                };
+                this.handleWindowLoad = loadFonts;
+                window.addEventListener('load', this.handleWindowLoad);
+                this.fallbackTimeout = setTimeout(loadFonts, LOAD_EVENT_FALLBACK_MS);
+                this.deadlineTimeout = setTimeout(finish, FONTS_LOADED_DEADLINE_MS);
             }
+        }
+        componentWillUnmount () {
+            this.unmounted = true;
+            this.cleanup();
+        }
+        cleanup () {
+            if (this.handleWindowLoad) {
+                window.removeEventListener('load', this.handleWindowLoad);
+                this.handleWindowLoad = null;
+            }
+            clearTimeout(this.fallbackTimeout);
+            clearTimeout(this.deadlineTimeout);
         }
         render () {
             const componentProps = omit(this.props, ['onSetFontsLoaded']);
